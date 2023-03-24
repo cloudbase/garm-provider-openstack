@@ -101,6 +101,10 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 	}
 	spec.MergeExtraSpecs(extraSpec)
 
+	if err := spec.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate spec: %w", err)
+	}
+
 	return spec, nil
 }
 
@@ -172,7 +176,25 @@ func (m *machineSpec) ComposeUserData() ([]byte, error) {
 }
 
 func (m *machineSpec) GetServerCreateOpts(flavor flavors.Flavor, net networks.Network, img images.Image) (servers.CreateOpts, error) {
-	return servers.CreateOpts{}, nil
+	udata, err := m.ComposeUserData()
+	if err != nil {
+		return servers.CreateOpts{}, fmt.Errorf("failed to get user data: %w", err)
+	}
+	return servers.CreateOpts{
+		Name:           m.BootstrapParams.Name,
+		ImageRef:       img.ID,
+		FlavorRef:      flavor.ID,
+		SecurityGroups: m.SecurityGroups,
+		Networks: []servers.Network{
+			{
+				UUID: net.ID,
+			},
+		},
+		Metadata:    m.Properties,
+		ConfigDrive: &m.UseConfigDrive,
+		Tags:        m.Tags,
+		UserData:    udata,
+	}, nil
 }
 
 func (m *machineSpec) GetBootFromVolumeOpts(srvOpts servers.CreateOpts) (bootfromvolume.CreateOptsExt, error) {
