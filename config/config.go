@@ -1,0 +1,195 @@
+package config
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/BurntSushi/toml"
+	"github.com/gophercloud/utils/openstack/clientconfig"
+	"gopkg.in/yaml.v2"
+)
+
+// NewConfig returns a new Config
+func NewConfig(cfgFile string) (*Config, error) {
+	var config Config
+	if _, err := toml.DecodeFile(cfgFile, &config); err != nil {
+		return nil, fmt.Errorf("error decoding config: %w", err)
+	}
+
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("error validating config: %w", err)
+	}
+	return &config, nil
+}
+
+type Config struct {
+	// Cloud is the name of the cloud that should be used. The cloud
+	// must be defined in the supplied clouds.yaml file supplied in the
+	// credentials field.
+	//
+	// This option can NOT be overwritten using extra_specs.
+	Cloud string `toml:"cloud"`
+
+	// Credentials holds information needed to connect to a cloud.
+	//
+	// This option can NOT be overwritten using extra_specs.
+	Credentials Credentials `toml:"credentials"`
+
+	// DefaultStorageBackend holds the name of the default storage backend
+	// to use. If this is is empty, we will default to whatever is the default
+	// in the cloud.
+	//
+	// This option can be overwritten using extra_specs.
+	DefaultStorageBackend string `toml:"default_storage_backend"`
+
+	// DefaultSecurityGroups holds a list of security group IDs that will be
+	// added by default to runners.
+	//
+	// This option can be overwritten using extra_specs.
+	DefaultSecurityGroups []string `toml:"default_security_groups"`
+
+	// DefaultNetworkID is the default network ID to use when creating a new runner.
+	//
+	// This value is mandatory.
+	// This value can be overwritten by extra_specs.
+	DefaultNetworkID string `toml:"network_id"`
+
+	// FloatingIPNetwork is the pool where we'll create a floating IP.
+	// If AllocateFloatingIP is set to true, this option becomes mandatory.
+	//
+	// This value can be overwritten via extra_specs.
+	FloatingIPNetwork string `toml:"floating_ip_network"`
+
+	// AllocateFloatingIP indicates whether or not we should allocate a floating IP.
+	//
+	// This option can be overwritten via extra_specs.
+	AllocateFloatingIP bool `toml:"allocate_floating_ip"`
+
+	// BootFromVolume indicates whether or not to boot from a cinder volume.
+	//
+	// This value can be overwritten using extra_specs.
+	BootFromVolume bool `toml:"boot_from_volume"`
+
+	// BootDiskSize is used in when BootFromVolume is set to true. If not explicitly
+	// set, we use the root disk size defined in the flavor. If no root disk size is
+	// specified in the flavor, we default to 50 GB.
+	//
+	// This value can be overwritten using extra_specs.
+	// This option is ignored if BootFromVolume is set to false.
+	BootDiskSize *int64 `toml:"root_disk_size"`
+
+	// UseConfigDrive indicates whether to use config drive or not.
+	//
+	// This value can be overwritten using extra_specs.
+	UseConfigDrive bool `toml:"use_config_drive"`
+}
+
+func (c *Config) Validate() error {
+	if err := c.Credentials.Validate(); err != nil {
+		return fmt.Errorf("failed to validate credentials: %w", err)
+	}
+	if !c.Credentials.HasCloud(c.Cloud) {
+		return fmt.Errorf("cloud %s is not defined in clouds.yaml", c.Cloud)
+	}
+
+	if c.AllocateFloatingIP && c.FloatingIPNetwork == "" {
+		return fmt.Errorf("floating_ip_network is mandatory when allocate_floating_ip is true")
+	}
+
+	if c.DefaultNetworkID == "" {
+		return fmt.Errorf("missing network_id")
+	}
+	return nil
+}
+
+// Credentials holds the paths on disk to the following files:
+//   - clouds.yaml
+//   - clouds-public.yaml
+//   - secure.yaml
+//
+// Out of the 3, the only one that is mandatory is clouds.yaml.
+type Credentials struct {
+	// Clouds holds the path to the clouds.yaml file. This field is mandatory
+	// and holds information on how to connect to one or more OpenStack clouds.
+	Clouds string `toml:"clouds"`
+	// PublicClouds is the path on disk to clouds-public.yaml. See:
+	// https://docs.openstack.org/python-openstackclient/latest/configuration/index.html#clouds-public-yaml
+	PublicClouds string `toml:"public_clouds"`
+	// SecureClouds is the path on disk to secure.yaml. This file normally holds secrets
+	// for connecting to the cloud. The format is identical to clouds.yaml, with only
+	// sensitive fields fileld in. These fields are merged with the values in clouds.yaml.
+	// See: https://docs.openstack.org/os-client-config/latest/user/configuration.html#splitting-secrets
+	SecureClouds string `toml:"secure_clouds"`
+}
+
+func (c Credentials) HasCloud(name string) bool {
+	clouds, err := c.LoadCloudsYAML()
+	if err != nil {
+		return false
+	}
+	if _, ok := clouds[name]; !ok {
+		return false
+	}
+	return true
+}
+
+func (c Credentials) Validate() error {
+	if _, err := c.LoadCloudsYAML(); err != nil {
+		return fmt.Errorf("failed to load clouds.yaml: %w", err)
+	}
+	if _, err := c.LoadPublicCloudsYAML(); err != nil {
+		return fmt.Errorf("failed to load clouds-public.yaml: %w", err)
+	}
+	if _, err := c.LoadSecureCloudsYAML(); err != nil {
+		return fmt.Errorf("failed to load secure.yaml: %w", err)
+	}
+	return nil
+}
+
+func readFile(filePath string) (map[string]clientconfig.Cloud, error) {
+	if filePath == "" {
+		return nil, fmt.Errorf("missing clouds config")
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		return nil, fmt.Errorf("failed to access clouds config: %w", err)
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read clouds config: %w", err)
+	}
+	var clouds clientconfig.Clouds
+	err = yaml.Unmarshal(content, &clouds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal yaml: %w", err)
+	}
+	return clouds.Clouds, nil
+}
+
+func canAccess(filePath string) bool {
+	if filePath == "" {
+		return false
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		return false
+	}
+	return true
+}
+
+func (o *Credentials) LoadCloudsYAML() (map[string]clientconfig.Cloud, error) {
+	return readFile(o.Clouds)
+}
+
+func (o *Credentials) LoadSecureCloudsYAML() (map[string]clientconfig.Cloud, error) {
+	if !canAccess(o.SecureClouds) {
+		return map[string]clientconfig.Cloud{}, nil
+	}
+	return readFile(o.SecureClouds)
+}
+
+func (o *Credentials) LoadPublicCloudsYAML() (map[string]clientconfig.Cloud, error) {
+	if !canAccess(o.PublicClouds) {
+		return map[string]clientconfig.Cloud{}, nil
+	}
+	return readFile(o.PublicClouds)
+}
