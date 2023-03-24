@@ -15,6 +15,7 @@ var _ execution.ExternalProvider = &openstackProvider{}
 const (
 	controllerIDTagName = "garm-controller-id"
 	poolIDTagName       = "garm-pool-id"
+	instanceNameTag     = "instance-name"
 )
 
 func NewOpenStackProvider(configPath, controllerID string) (execution.ExternalProvider, error) {

@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/cloudbase/garm/params"
 	"github.com/cloudbase/garm/util"
 	"github.com/google/go-github/v48/github"
+
+	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 var (
@@ -38,11 +39,23 @@ func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, err
 	return spec, nil
 }
 
-func getTags(controllerID, poolID string) []string {
+func getTags(controllerID, poolID, name string) []string {
 	return []string{
 		fmt.Sprintf("%s=%s", poolIDTagName, poolID),
 		fmt.Sprintf("%s=%s", controllerIDTagName, controllerID),
+		fmt.Sprintf("%s=%s", instanceNameTag, name),
 	}
+}
+
+func getProperties(data params.BootstrapInstance, controllerID string) map[string]string {
+	ret := map[string]string{
+		"os_arch":           string(data.OSArch),
+		"os_type":           string(data.OSType),
+		poolIDTagName:       data.PoolID,
+		controllerIDTagName: controllerID,
+	}
+
+	return ret
 }
 
 func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controllerID string) (*machineSpec, error) {
@@ -65,8 +78,6 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		bootDiskSize = *cfg.BootDiskSize
 	}
 
-	tags := getTags(controllerID, data.PoolID)
-
 	spec := &machineSpec{
 		StorageBackend:     cfg.DefaultStorageBackend,
 		SecurityGroups:     cfg.DefaultSecurityGroups,
@@ -77,9 +88,11 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		BootDiskSize:       bootDiskSize,
 		UseConfigDrive:     cfg.UseConfigDrive,
 		Flavor:             data.Flavor,
+		Image:              data.Image,
 		Tools:              tools,
-		Tags:               tags,
+		Tags:               getTags(controllerID, data.PoolID, data.Name),
 		BootstrapParams:    data,
+		Properties:         getProperties(data, controllerID),
 	}
 	spec.MergeExtraSpecs(extraSpec)
 
@@ -96,6 +109,7 @@ type machineSpec struct {
 	BootDiskSize       int64
 	UseConfigDrive     bool
 	Flavor             string
+	Image              string
 	Tools              github.RunnerApplicationDownload
 	Tags               []string
 	Properties         map[string]string
@@ -134,4 +148,16 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 	if spec.UseConfigDrive != nil {
 		m.UseConfigDrive = *spec.UseConfigDrive
 	}
+}
+
+func (m *machineSpec) ComposeUserData() ([]byte, error) {
+	switch m.BootstrapParams.OSType {
+	case params.Linux, params.Windows:
+		udata, err := util.GetCloudConfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate userdata: %w", err)
+		}
+		return []byte(udata), nil
+	}
+	return nil, fmt.Errorf("unsupported OS type for cloud config: %s", m.BootstrapParams.OSType)
 }

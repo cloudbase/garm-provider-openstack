@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/cloudbase/garm v0.0.0-00010101000000-000000000000
 	github.com/google/go-github/v48 v48.2.0
+	github.com/google/uuid v1.3.0
 	github.com/gophercloud/gophercloud v1.1.1
 	github.com/gophercloud/utils v0.0.0-20230324070755-05e9e7f5ea4d
 	gopkg.in/yaml.v2 v2.4.0
@@ -15,7 +16,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
