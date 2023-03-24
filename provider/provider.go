@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudbase/garm-provider-openstack/client"
 	"github.com/cloudbase/garm-provider-openstack/config"
 
 	"github.com/cloudbase/garm/params"
@@ -23,20 +24,77 @@ func NewOpenStackProvider(configPath, controllerID string) (execution.ExternalPr
 	if err != nil {
 		return nil, fmt.Errorf("error loading config: %w", err)
 	}
+
+	cli, err := client.NewClient(conf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client: %w", err)
+	}
 	return &openstackProvider{
 		cfg:          conf,
 		controllerID: controllerID,
+		cli:          cli,
 	}, nil
 }
 
 type openstackProvider struct {
 	cfg          *config.Config
+	cli          *client.OpenstackClient
 	controllerID string
+}
+
+func openstackServerToInstance(srv client.ServerWithExt) params.Instance {
+	return params.Instance{
+		ProviderID: srv.ID,
+		Name:       srv.Name,
+	}
 }
 
 // CreateInstance creates a new compute instance in the provider.
 func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams params.BootstrapInstance) (params.Instance, error) {
-	return params.Instance{}, nil
+	spec, err := NewMachineSpec(bootstrapParams, a.cfg, a.controllerID)
+	if err != nil {
+		return params.Instance{}, fmt.Errorf("failed to build machine spec: %w", err)
+	}
+	flavor, err := a.cli.GetFlavor(spec.Flavor)
+	if err != nil {
+		return params.Instance{}, fmt.Errorf("failed to resolve flavor %s: %w", bootstrapParams.Flavor, err)
+	}
+
+	net, err := a.cli.GetNetwork(spec.NetworkID)
+	if err != nil {
+		return params.Instance{}, fmt.Errorf("failed to resolve network %s: %w", spec.NetworkID, err)
+	}
+
+	image, err := a.cli.GetImage(spec.Image)
+	if err != nil {
+		return params.Instance{}, fmt.Errorf("failed to resolve image info: %w", err)
+	}
+
+	srvCreateOpts, err := spec.GetServerCreateOpts(*flavor, *net, *image)
+	if err != nil {
+		return params.Instance{}, fmt.Errorf("failed to get server create options: %w", err)
+	}
+
+	var ret params.Instance
+
+	if !spec.BootFromVolume {
+		srv, err := a.cli.CreateServerFromImage(srvCreateOpts)
+		if err != nil {
+			return params.Instance{}, fmt.Errorf("failed to create server: %w", err)
+		}
+		ret = openstackServerToInstance(srv)
+	} else {
+		createOption, err := spec.GetBootFromVolumeOpts(srvCreateOpts)
+		if err != nil {
+			return params.Instance{}, fmt.Errorf("failed to get boot from volume create options: %w", err)
+		}
+		srv, err := a.cli.CreateServerFromVolume(createOption, spec.BootstrapParams.Name)
+		if err != nil {
+			return params.Instance{}, fmt.Errorf("failed to create server: %w", err)
+		}
+		ret = openstackServerToInstance(srv)
+	}
+	return ret, nil
 }
 
 // Delete instance will delete the instance in a provider.

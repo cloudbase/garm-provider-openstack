@@ -18,7 +18,7 @@ import (
 	"github.com/gophercloud/utils/openstack/clientconfig"
 )
 
-func NewClient(cfg *config.Config) (*openstackClient, error) {
+func NewClient(cfg *config.Config) (*OpenstackClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -51,7 +51,7 @@ func NewClient(cfg *config.Config) (*openstackClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cinder client: %w", err)
 	}
-	return &openstackClient{
+	return &OpenstackClient{
 		compute: compute,
 		image:   glance,
 		network: neutron,
@@ -66,7 +66,7 @@ type ServerWithExt struct {
 	diskconfig.ServerDiskConfigExt
 }
 
-type openstackClient struct {
+type OpenstackClient struct {
 	compute *gophercloud.ServiceClient
 	image   *gophercloud.ServiceClient
 	network *gophercloud.ServiceClient
@@ -74,7 +74,7 @@ type openstackClient struct {
 }
 
 // CreateServerFromImage creates a new server from an image.
-func (o *openstackClient) CreateServerFromImage(createOpts servers.CreateOpts) (srv ServerWithExt, err error) {
+func (o *OpenstackClient) CreateServerFromImage(createOpts servers.CreateOpts) (srv ServerWithExt, err error) {
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
@@ -97,7 +97,7 @@ func (o *openstackClient) CreateServerFromImage(createOpts servers.CreateOpts) (
 }
 
 // CreateServerFromVolume creates a new server from a volume.
-func (o *openstackClient) CreateServerFromVolume(createOpts bootfromvolume.CreateOptsExt, name string) (srv ServerWithExt, err error) {
+func (o *OpenstackClient) CreateServerFromVolume(createOpts bootfromvolume.CreateOptsExt, name string) (srv ServerWithExt, err error) {
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
@@ -120,7 +120,7 @@ func (o *openstackClient) CreateServerFromVolume(createOpts bootfromvolume.Creat
 }
 
 // GetServer creates a new server.
-func (o *openstackClient) GetServer(nameOrId string) (ServerWithExt, error) {
+func (o *OpenstackClient) GetServer(nameOrId string) (ServerWithExt, error) {
 	if isUUID(nameOrId) {
 		var srv ServerWithExt
 		if err := servers.Get(o.compute, nameOrId).ExtractInto(&srv); err != nil {
@@ -150,7 +150,7 @@ func (o *openstackClient) GetServer(nameOrId string) (ServerWithExt, error) {
 }
 
 // ListServers creates a new server.
-func (o *openstackClient) ListServers(tags []string) ([]ServerWithExt, error) {
+func (o *OpenstackClient) ListServers(tags []string) ([]ServerWithExt, error) {
 	var srvResults []ServerWithExt
 	pages, err := servers.List(o.compute, nil).AllPages()
 	if err != nil {
@@ -165,7 +165,7 @@ func (o *openstackClient) ListServers(tags []string) ([]ServerWithExt, error) {
 	return srvResults, nil
 }
 
-func (o *openstackClient) waitForStatus(id, status string, secs int) error {
+func (o *OpenstackClient) waitForStatus(id, status string, secs int) error {
 	return gophercloud.WaitFor(secs, func() (bool, error) {
 		current, err := servers.Get(o.compute, id).Extract()
 		if err != nil {
@@ -184,7 +184,7 @@ func (o *openstackClient) waitForStatus(id, status string, secs int) error {
 	})
 }
 
-func (o *openstackClient) deleteServerByID(id string, waitForDelete bool) error {
+func (o *OpenstackClient) deleteServerByID(id string, waitForDelete bool) error {
 	response := servers.ForceDelete(o.compute, id)
 	if response.StatusCode == 404 {
 		return nil
@@ -203,7 +203,7 @@ func (o *openstackClient) deleteServerByID(id string, waitForDelete bool) error 
 	return nil
 }
 
-func (o *openstackClient) deleteServerByName(name string, waitForDelete bool) error {
+func (o *OpenstackClient) deleteServerByName(name string, waitForDelete bool) error {
 	tags := []string{
 		"instance-name=" + name,
 	}
@@ -225,7 +225,7 @@ func (o *openstackClient) deleteServerByName(name string, waitForDelete bool) er
 }
 
 // DeleteServer server creates a new server.
-func (o *openstackClient) DeleteServer(nameOrID string, waitForDelete bool) error {
+func (o *OpenstackClient) DeleteServer(nameOrID string, waitForDelete bool) error {
 	if isUUID(nameOrID) {
 		return o.deleteServerByID(nameOrID, waitForDelete)
 	}
@@ -233,7 +233,7 @@ func (o *openstackClient) DeleteServer(nameOrID string, waitForDelete bool) erro
 }
 
 // GetFlavor resolves a flavor name or ID to a flavor.
-func (o *openstackClient) GetFlavor(nameOrId string) (*flavors.Flavor, error) {
+func (o *OpenstackClient) GetFlavor(nameOrId string) (*flavors.Flavor, error) {
 	var flavor *flavors.Flavor
 	var err error
 	flavor, err = flavors.Get(o.compute, nameOrId).Extract()
@@ -267,7 +267,7 @@ func (o *openstackClient) GetFlavor(nameOrId string) (*flavors.Flavor, error) {
 }
 
 // GetImage gets details of an image passed in by ID.
-func (o *openstackClient) GetImage(nameOrID string) (*images.Image, error) {
+func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
 	var result *images.Image
 	var err error
 
@@ -305,7 +305,7 @@ func (o *openstackClient) GetImage(nameOrID string) (*images.Image, error) {
 }
 
 // GetNetwork returns network details
-func (o *openstackClient) GetNetwork(nameOrID string) (*networks.Network, error) {
+func (o *OpenstackClient) GetNetwork(nameOrID string) (*networks.Network, error) {
 	var net *networks.Network
 	var err error
 

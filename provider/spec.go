@@ -7,6 +7,11 @@ import (
 	"github.com/cloudbase/garm/params"
 	"github.com/cloudbase/garm/util"
 	"github.com/google/go-github/v48/github"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
 )
@@ -116,6 +121,10 @@ type machineSpec struct {
 	BootstrapParams    params.BootstrapInstance
 }
 
+func (m *machineSpec) Validate() error {
+	return fmt.Errorf("failed to validate spec")
+}
+
 func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 	if spec.StorageBackend != "" {
 		m.StorageBackend = spec.StorageBackend
@@ -160,4 +169,28 @@ func (m *machineSpec) ComposeUserData() ([]byte, error) {
 		return []byte(udata), nil
 	}
 	return nil, fmt.Errorf("unsupported OS type for cloud config: %s", m.BootstrapParams.OSType)
+}
+
+func (m *machineSpec) GetServerCreateOpts(flavor flavors.Flavor, net networks.Network, img images.Image) (servers.CreateOpts, error) {
+	return servers.CreateOpts{}, nil
+}
+
+func (m *machineSpec) GetBootFromVolumeOpts(srvOpts servers.CreateOpts) (bootfromvolume.CreateOptsExt, error) {
+	rootDisk := bootfromvolume.BlockDevice{
+		DeleteOnTermination: true,
+		DestinationType:     bootfromvolume.DestinationVolume,
+		SourceType:          bootfromvolume.SourceImage,
+		UUID:                srvOpts.ImageRef,
+		VolumeSize:          int(m.BootDiskSize),
+	}
+	if m.StorageBackend != "" {
+		rootDisk.VolumeType = m.StorageBackend
+	}
+	blockDevices := []bootfromvolume.BlockDevice{
+		rootDisk,
+	}
+	return bootfromvolume.CreateOptsExt{
+		CreateOptsBuilder: srvOpts,
+		BlockDevice:       blockDevices,
+	}, nil
 }
