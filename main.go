@@ -28,7 +28,7 @@ func main() {
 	result, err := execution.Run(ctx, prov, executionEnv)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to run command: %s", err)
-		os.Exit(1)
+		os.Exit(execution.ResolveErrorToExitCode(err))
 	}
 	if len(result) > 0 {
 		fmt.Fprint(os.Stdout, result)

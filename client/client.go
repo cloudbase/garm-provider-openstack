@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	gErrors "errors"
+
 	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud"
@@ -225,10 +227,10 @@ func (o *OpenstackClient) waitForStatus(id, status string, secs int) error {
 
 		current, err := result.Extract()
 		if err != nil {
-			if result.StatusCode == 404 && status == "DELETED" {
-				return false, nil
+			if _, ok := err.(gophercloud.ErrDefault404); ok && status == "DELETED" {
+				return true, nil
 			}
-			return false, err
+			return false, fmt.Errorf("could not find server %s: %w", id, err)
 		}
 
 		if current.Status == status {
@@ -268,10 +270,18 @@ func (o *OpenstackClient) deleteServerByID(id string, waitForDelete bool) error 
 func (o *OpenstackClient) DeleteServer(nameOrID string, waitForDelete bool) error {
 	results, err := o.ListServersWithNameOrID(nameOrID)
 	if err != nil {
+		// errors returned by gophercloud are not errors.Is compatible.
+		if _, ok := gErrors.Unwrap(err).(gophercloud.ErrDefault404); ok {
+			return nil
+		}
 		return fmt.Errorf("failed to find server: %w", err)
 	}
 	for _, srv := range results {
 		if err := o.deleteServerByID(srv.ID, true); err != nil {
+			// errors returned by gophercloud are not errors.Is compatible.
+			if _, ok := gErrors.Unwrap(err).(gophercloud.ErrDefault404); ok {
+				continue
+			}
 			return fmt.Errorf("failed to delete server with ID %s: %w", srv.ID, err)
 		}
 	}
