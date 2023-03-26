@@ -54,17 +54,6 @@ type Config struct {
 	// This value can be overwritten by extra_specs.
 	DefaultNetworkID string `toml:"network_id"`
 
-	// FloatingIPNetwork is the pool where we'll create a floating IP.
-	// If AllocateFloatingIP is set to true, this option becomes mandatory.
-	//
-	// This value can be overwritten via extra_specs.
-	FloatingIPNetwork string `toml:"floating_ip_network"`
-
-	// AllocateFloatingIP indicates whether or not we should allocate a floating IP.
-	//
-	// This option can be overwritten via extra_specs.
-	AllocateFloatingIP bool `toml:"allocate_floating_ip"`
-
 	// BootFromVolume indicates whether or not to boot from a cinder volume.
 	//
 	// This value can be overwritten using extra_specs.
@@ -90,10 +79,6 @@ func (c *Config) Validate() error {
 	}
 	if !c.Credentials.HasCloud(c.Cloud) {
 		return fmt.Errorf("cloud %s is not defined in clouds.yaml", c.Cloud)
-	}
-
-	if c.AllocateFloatingIP && c.FloatingIPNetwork == "" {
-		return fmt.Errorf("floating_ip_network is mandatory when allocate_floating_ip is true")
 	}
 
 	if c.DefaultNetworkID == "" {

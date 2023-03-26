@@ -1,0 +1,5 @@
+export GARM_COMMAND="ListInstances"
+export GARM_CONTROLLER_ID="f9286791-1589-4f39-a106-5b68c2a18af4"
+export GARM_POOL_ID="a27e6ff5-0d12-4f54-9372-0d22edfd8e36"
+export GARM_PROVIDER_CONFIG_FILE="/home/ubuntu/garm-provider-openstack.toml"
+export GARM_INSTANCE_ID="garm-test"

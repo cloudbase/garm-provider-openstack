@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/google/uuid"
@@ -10,15 +11,21 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/diskconfig"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/gophercloud/utils/openstack/clientconfig"
 )
 
-func NewClient(cfg *config.Config) (*OpenstackClient, error) {
+const (
+	controllerIDTagName = "garm-controller-id"
+	poolIDTagName       = "garm-pool-id"
+)
+
+func NewClient(cfg *config.Config, controllerID string) (*OpenstackClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
@@ -52,10 +59,11 @@ func NewClient(cfg *config.Config) (*OpenstackClient, error) {
 		return nil, fmt.Errorf("failed to get cinder client: %w", err)
 	}
 	return &OpenstackClient{
-		compute: compute,
-		image:   glance,
-		network: neutron,
-		volume:  cinder,
+		compute:      compute,
+		image:        glance,
+		network:      neutron,
+		volume:       cinder,
+		controllerID: controllerID,
 	}, nil
 }
 
@@ -71,6 +79,8 @@ type OpenstackClient struct {
 	image   *gophercloud.ServiceClient
 	network *gophercloud.ServiceClient
 	volume  *gophercloud.ServiceClient
+
+	controllerID string
 }
 
 // CreateServerFromImage creates a new server from an image.
@@ -89,8 +99,8 @@ func (o *OpenstackClient) CreateServerFromImage(createOpts servers.CreateOpts) (
 		return srv, fmt.Errorf("failed to create server: %w", err)
 	}
 
-	if err := servers.WaitForStatus(o.compute, srv.ID, "ACTIVE", 120); err != nil {
-		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds")
+	if err := o.waitForStatus(srv.ID, "ACTIVE", 120); err != nil {
+		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds: %w", err)
 	}
 
 	return o.GetServer(srv.ID)
@@ -112,8 +122,8 @@ func (o *OpenstackClient) CreateServerFromVolume(createOpts bootfromvolume.Creat
 		return srv, fmt.Errorf("failed to create server: %w", err)
 	}
 
-	if err := servers.WaitForStatus(o.compute, srv.ID, "ACTIVE", 120); err != nil {
-		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds")
+	if err := o.waitForStatus(srv.ID, "ACTIVE", 120); err != nil {
+		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds: %w", err)
 	}
 
 	return o.GetServer(srv.ID)
@@ -121,38 +131,28 @@ func (o *OpenstackClient) CreateServerFromVolume(createOpts bootfromvolume.Creat
 
 // GetServer creates a new server.
 func (o *OpenstackClient) GetServer(nameOrId string) (ServerWithExt, error) {
-	if isUUID(nameOrId) {
-		var srv ServerWithExt
-		if err := servers.Get(o.compute, nameOrId).ExtractInto(&srv); err != nil {
-			return ServerWithExt{}, fmt.Errorf("failed to get server: %w", err)
-		}
-		return srv, nil
-	}
-
-	tags := []string{
-		"instance-name=" + nameOrId,
-	}
-
-	srvResults, err := o.ListServers(tags)
+	results, err := o.ListServersWithNameOrID(nameOrId)
 	if err != nil {
-		return ServerWithExt{}, fmt.Errorf("failed to find server by name: %w", err)
+		return ServerWithExt{}, fmt.Errorf("failed to find server: %w", err)
 	}
 
-	if len(srvResults) == 0 {
+	if len(results) == 0 {
 		return ServerWithExt{}, fmt.Errorf("failed to find server with name or id %s", nameOrId)
 	}
 
-	if len(srvResults) > 1 {
-		return ServerWithExt{}, fmt.Errorf("multiple servers with name %s were found", nameOrId)
+	if len(results) > 1 {
+		return ServerWithExt{}, fmt.Errorf("multiple servers with name or id %s; manual intervention required", nameOrId)
 	}
 
-	return srvResults[0], nil
+	return results[0], nil
 }
 
-// ListServers creates a new server.
-func (o *OpenstackClient) ListServers(tags []string) ([]ServerWithExt, error) {
+func (o *OpenstackClient) ListServersWithTags(tags []string) ([]ServerWithExt, error) {
 	var srvResults []ServerWithExt
-	pages, err := servers.List(o.compute, nil).AllPages()
+	opts := servers.ListOpts{
+		Tags: strings.Join(tags, ","),
+	}
+	pages, err := servers.List(o.compute, opts).AllPages()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list servers: %w", err)
 	}
@@ -165,10 +165,69 @@ func (o *OpenstackClient) ListServers(tags []string) ([]ServerWithExt, error) {
 	return srvResults, nil
 }
 
+// ListServersWithNameOrID will return an array of servers that match a name or ID. When passing
+// in an ID, there is no chance that this function will return an array larger than one element.
+// When passing in a name, the function may return an array larger than 1 element.
+func (o *OpenstackClient) ListServersWithNameOrID(nameOrId string) ([]ServerWithExt, error) {
+	if isUUID(nameOrId) {
+		var srv ServerWithExt
+		if err := servers.Get(o.compute, nameOrId).ExtractInto(&srv); err != nil {
+			return nil, fmt.Errorf("failed to get server: %w", err)
+		}
+		var controllerIDValue string
+		if srv.Tags != nil {
+			for _, tag := range *srv.Tags {
+				if strings.HasPrefix(tag, controllerIDTagName+"=") {
+					parts := strings.SplitN(tag, "=", 2)
+					controllerIDValue = parts[1]
+					break
+				}
+			}
+		}
+		if controllerIDValue != o.controllerID {
+			return nil, fmt.Errorf("server with name or ID %s not found", nameOrId)
+		}
+		return []ServerWithExt{srv}, nil
+	}
+
+	tags := []string{
+		controllerIDTagName + "=" + o.controllerID,
+	}
+
+	srvResults, err := o.ListServersWithTags(tags)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find server by name: %w", err)
+	}
+
+	results := []ServerWithExt{}
+	for _, result := range srvResults {
+		if result.Name == nameOrId {
+			results = append(results, result)
+		}
+	}
+
+	return results, nil
+}
+
+// ListServers creates a new server.
+func (o *OpenstackClient) ListServers(poolID string) ([]ServerWithExt, error) {
+	tags := []string{
+		poolIDTagName + "=" + poolID,
+		controllerIDTagName + "=" + o.controllerID,
+	}
+
+	return o.ListServersWithTags(tags)
+}
+
 func (o *OpenstackClient) waitForStatus(id, status string, secs int) error {
 	return gophercloud.WaitFor(secs, func() (bool, error) {
-		current, err := servers.Get(o.compute, id).Extract()
+		result := servers.Get(o.compute, id)
+
+		current, err := result.Extract()
 		if err != nil {
+			if result.StatusCode == 404 && status == "DELETED" {
+				return false, nil
+			}
 			return false, err
 		}
 
@@ -203,33 +262,20 @@ func (o *OpenstackClient) deleteServerByID(id string, waitForDelete bool) error 
 	return nil
 }
 
-func (o *OpenstackClient) deleteServerByName(name string, waitForDelete bool) error {
-	tags := []string{
-		"instance-name=" + name,
-	}
-	results, err := o.ListServers(tags)
+// DeleteServer server deletes servers that match nameOrID.
+// Warning: If a name is passed in, all servers with the same name, that match the controller ID
+// set in the tags, will be deleted
+func (o *OpenstackClient) DeleteServer(nameOrID string, waitForDelete bool) error {
+	results, err := o.ListServersWithNameOrID(nameOrID)
 	if err != nil {
-		return fmt.Errorf("failed while searching for server: %w", err)
+		return fmt.Errorf("failed to find server: %w", err)
 	}
-	if len(results) == 0 {
-		return nil
-	}
-
 	for _, srv := range results {
-		if err := o.deleteServerByID(srv.ID, waitForDelete); err != nil {
-			return fmt.Errorf("failed to delete server %s (ID: %s): %w", srv.Name, srv.ID, err)
+		if err := o.deleteServerByID(srv.ID, true); err != nil {
+			return fmt.Errorf("failed to delete server with ID %s: %w", srv.ID, err)
 		}
 	}
-
 	return nil
-}
-
-// DeleteServer server creates a new server.
-func (o *OpenstackClient) DeleteServer(nameOrID string, waitForDelete bool) error {
-	if isUUID(nameOrID) {
-		return o.deleteServerByID(nameOrID, waitForDelete)
-	}
-	return o.deleteServerByName(nameOrID, waitForDelete)
 }
 
 // GetFlavor resolves a flavor name or ID to a flavor.
@@ -278,9 +324,11 @@ func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
 		}
 		return result, nil
 	}
-
+	opts := images.ListOpts{
+		Name: nameOrID,
+	}
 	// perhaps it's a name. List all images and look for the image by name.
-	if err := images.ListDetail(o.image, nil).EachPage(func(page pagination.Page) (bool, error) {
+	if err := images.List(o.image, opts).EachPage(func(page pagination.Page) (bool, error) {
 		imgResults, err := images.ExtractImages(page)
 		if err != nil {
 			return false, err
@@ -340,6 +388,40 @@ func (o *OpenstackClient) GetNetwork(nameOrID string) (*networks.Network, error)
 	}
 
 	return net, nil
+}
+
+func (o *OpenstackClient) StopServer(nameOrID string) error {
+	srv, err := o.GetServer(nameOrID)
+	if err != nil {
+		return fmt.Errorf("failed to get server: %w", err)
+	}
+
+	if srv.Status == "SHUTOFF" {
+		return nil
+	}
+
+	if err := startstop.Stop(o.compute, srv.ID).ExtractErr(); err != nil {
+		return fmt.Errorf("failed to stop server: %w", err)
+	}
+
+	return nil
+}
+
+func (o *OpenstackClient) StartServer(nameOrID string) error {
+	srv, err := o.GetServer(nameOrID)
+	if err != nil {
+		return fmt.Errorf("failed to get server: %w", err)
+	}
+
+	if srv.Status == "ACTIVE" {
+		return nil
+	}
+
+	if err := startstop.Start(o.compute, srv.ID).ExtractErr(); err != nil {
+		return fmt.Errorf("failed to stop server: %w", err)
+	}
+
+	return nil
 }
 
 func isUUID(data string) bool {

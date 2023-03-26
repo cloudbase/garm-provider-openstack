@@ -9,8 +9,8 @@ import (
 	"github.com/google/go-github/v48/github"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
@@ -48,7 +48,6 @@ func getTags(controllerID, poolID, name string) []string {
 	return []string{
 		fmt.Sprintf("%s=%s", poolIDTagName, poolID),
 		fmt.Sprintf("%s=%s", controllerIDTagName, controllerID),
-		fmt.Sprintf("%s=%s", instanceNameTag, name),
 	}
 }
 
@@ -84,20 +83,18 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 	}
 
 	spec := &machineSpec{
-		StorageBackend:     cfg.DefaultStorageBackend,
-		SecurityGroups:     cfg.DefaultSecurityGroups,
-		NetworkID:          cfg.DefaultNetworkID,
-		AllocateFloatingIP: cfg.AllocateFloatingIP,
-		FloatingIPNetwork:  cfg.FloatingIPNetwork,
-		BootFromVolume:     cfg.BootFromVolume,
-		BootDiskSize:       bootDiskSize,
-		UseConfigDrive:     cfg.UseConfigDrive,
-		Flavor:             data.Flavor,
-		Image:              data.Image,
-		Tools:              tools,
-		Tags:               getTags(controllerID, data.PoolID, data.Name),
-		BootstrapParams:    data,
-		Properties:         getProperties(data, controllerID),
+		StorageBackend:  cfg.DefaultStorageBackend,
+		SecurityGroups:  cfg.DefaultSecurityGroups,
+		NetworkID:       cfg.DefaultNetworkID,
+		BootFromVolume:  cfg.BootFromVolume,
+		BootDiskSize:    bootDiskSize,
+		UseConfigDrive:  cfg.UseConfigDrive,
+		Flavor:          data.Flavor,
+		Image:           data.Image,
+		Tools:           tools,
+		Tags:            getTags(controllerID, data.PoolID, data.Name),
+		BootstrapParams: data,
+		Properties:      getProperties(data, controllerID),
 	}
 	spec.MergeExtraSpecs(extraSpec)
 
@@ -109,33 +106,74 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 }
 
 type machineSpec struct {
-	StorageBackend     string
-	SecurityGroups     []string
-	NetworkID          string
-	FloatingIPNetwork  string
-	AllocateFloatingIP bool
-	BootFromVolume     bool
-	BootDiskSize       int64
-	UseConfigDrive     bool
-	Flavor             string
-	Image              string
-	Tools              github.RunnerApplicationDownload
-	Tags               []string
-	Properties         map[string]string
-	BootstrapParams    params.BootstrapInstance
+	StorageBackend  string
+	SecurityGroups  []string
+	NetworkID       string
+	BootFromVolume  bool
+	BootDiskSize    int64
+	UseConfigDrive  bool
+	Flavor          string
+	Image           string
+	Tools           github.RunnerApplicationDownload
+	Tags            []string
+	Properties      map[string]string
+	BootstrapParams params.BootstrapInstance
 }
 
 func (m *machineSpec) Validate() error {
-	return fmt.Errorf("failed to validate spec")
+	if m.NetworkID == "" {
+		return fmt.Errorf("missing network ID")
+	}
+
+	if m.BootFromVolume {
+		if m.BootDiskSize == 0 {
+			return fmt.Errorf("boot from volume is enabled, and boot disk size is 0")
+		}
+	}
+
+	if m.Flavor == "" {
+		return fmt.Errorf("missing flavor")
+	}
+
+	if m.Image == "" {
+		return fmt.Errorf("missing image")
+	}
+
+	if len(m.Tags) == 0 {
+		return fmt.Errorf("missing tags; at least the controller ID and pool ID must be set")
+	}
+
+	if m.Tools.DownloadURL == nil {
+		return fmt.Errorf("missing tools")
+	}
+
+	if m.BootstrapParams.Name == "" {
+		return fmt.Errorf("missing bootstrap params")
+	}
+	return nil
+}
+
+// SetSpecFromImage looks for aditional info in the image metadata that can be set
+// on a machine for later retrieval.
+func (m *machineSpec) SetSpecFromImage(img images.Image) {
+	if os_name, ok := img.Properties["os_distro"]; ok {
+		val, ok := os_name.(string)
+		if ok {
+			m.Properties["os_name"] = val
+		}
+	}
+
+	if os_version, ok := img.Properties["os_version"]; ok {
+		val, ok := os_version.(string)
+		if ok {
+			m.Properties["os_version"] = val
+		}
+	}
 }
 
 func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 	if spec.StorageBackend != "" {
 		m.StorageBackend = spec.StorageBackend
-	}
-
-	if spec.AllocateFloatingIP != nil {
-		m.AllocateFloatingIP = *spec.AllocateFloatingIP
 	}
 
 	if spec.BootDiskSize != nil {
@@ -144,10 +182,6 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 
 	if spec.BootFromVolume != nil {
 		m.BootFromVolume = *spec.BootFromVolume
-	}
-
-	if spec.FloatingIPNetwork != "" {
-		m.FloatingIPNetwork = spec.FloatingIPNetwork
 	}
 
 	if spec.NetworkID != "" {
