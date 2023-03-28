@@ -1,0 +1,62 @@
+# Cloud is the name of the cloud that should be used. The cloud
+# must be defined in the supplied clouds.yaml file supplied in the
+# credentials field.
+#
+# This option can NOT be overwritten using extra_specs.
+cloud = "openstack"
+
+# default_storage_backend holds the name of the default storage backend
+# to use. If this is is empty, we will default to whatever is the default
+# in the cloud. Use this option if you have multiple storage backends and
+# want to use a different one than the default.
+#
+# This option can be overwritten using extra_specs.
+default_storage_backend = ""
+
+# default_security_groups holds a list of security group IDs that will be
+# added by default to runners.
+#
+# This option can be overwritten using extra_specs.
+default_security_groups = ["default"]
+
+# network_id is the default network ID to use when creating a new runner.
+#
+# This value is mandatory.
+# This value can be overwritten by extra_specs.
+network_id = "542b68dd-4b3d-459d-8531-34d5e779d4d6"
+
+# boot_from_volume indicates whether or not to boot from a cinder volume.
+#
+# This value can be overwritten using extra_specs.
+boot_from_volume = false
+
+# root_disk_size is used in when boot_from_volume is set to true. If not explicitly
+# set, we use the root disk size defined in the flavor. If no root disk size is
+# specified in the flavor, we default to 50 GB.
+#
+# This value can be overwritten using extra_specs.
+# This option is ignored if boot_from_volume is set to false.
+root_disk_size = 30
+
+# UseConfigDrive indicates whether to use config drive or not.
+#
+# This value can be overwritten using extra_specs.
+use_config_drive = false
+
+# credentials holds information needed to connect to a cloud.
+#
+# This option can NOT be overwritten using extra_specs.
+[credentials]
+# clouds holds the path to the clouds.yaml file. This field is mandatory
+# and holds information on how to connect to one or more OpenStack clouds.
+clouds = "/home/ubuntu/clouds.yaml"
+
+# PublicClouds is the path on disk to clouds-public.yaml. See:
+# https://docs.openstack.org/python-openstackclient/latest/configuration/index.html#clouds-public-yaml
+public_clouds = ""
+
+# SecureClouds is the path on disk to secure.yaml. This file normally holds secrets
+# for connecting to the cloud. The format is identical to clouds.yaml, with only
+# sensitive fields fileld in. These fields are merged with the values in clouds.yaml.
+# See: https://docs.openstack.org/os-client-config/latest/user/configuration.html#splitting-secrets
+secure_clouds = ""

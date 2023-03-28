@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/cloudbase/garm v0.0.0-00010101000000-000000000000
+	github.com/cloudbase/garm v0.0.0-20230328142628-4c906d5f5b4e
 	github.com/google/go-github/v48 v48.2.0
 	github.com/google/uuid v1.3.0
 	github.com/gophercloud/gophercloud v1.1.1
@@ -33,5 +33,3 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/cloudbase/garm => github.com/gabriel-samfira/garm v0.0.0-20230326193155-80e8f6dc1e2e

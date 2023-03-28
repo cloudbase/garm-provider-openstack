@@ -21,14 +21,12 @@ var (
 )
 
 type extraSpecs struct {
-	StorageBackend     string   `json:"storage_backend,omitempty"`
-	SecurityGroups     []string `json:"security_groups,omitempty"`
-	NetworkID          string   `json:"network_id"`
-	FloatingIPNetwork  string   `json:"floating_ip_network"`
-	AllocateFloatingIP *bool    `json:"allocate_floating_ip,omitempty"`
-	BootFromVolume     *bool    `json:"boot_from_volume,omitempty"`
-	BootDiskSize       *int64   `json:"boot_disk_size,omitempty"`
-	UseConfigDrive     *bool    `json:"use_config_drive"`
+	SecurityGroups []string `json:"security_groups,omitempty"`
+	NetworkID      string   `json:"network_id"`
+	StorageBackend string   `json:"storage_backend,omitempty"`
+	BootFromVolume *bool    `json:"boot_from_volume,omitempty"`
+	BootDiskSize   *int64   `json:"boot_disk_size,omitempty"`
+	UseConfigDrive *bool    `json:"use_config_drive"`
 }
 
 func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, error) {
