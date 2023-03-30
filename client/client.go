@@ -90,9 +90,9 @@ func (o *OpenstackClient) CreateServerFromImage(createOpts servers.CreateOpts) (
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
-				o.DeleteServer(srv.ID, true)
+				_ = o.DeleteServer(srv.ID, true)
 			} else {
-				o.DeleteServer(createOpts.Name, true)
+				_ = o.DeleteServer(createOpts.Name, true)
 			}
 		}
 	}()
@@ -113,9 +113,9 @@ func (o *OpenstackClient) CreateServerFromVolume(createOpts bootfromvolume.Creat
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
-				o.DeleteServer(srv.ID, true)
+				_ = o.DeleteServer(srv.ID, true)
 			} else {
-				o.DeleteServer(name, true)
+				_ = o.DeleteServer(name, true)
 			}
 		}
 	}()
