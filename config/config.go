@@ -71,6 +71,12 @@ type Config struct {
 	//
 	// This value can be overwritten using extra_specs.
 	UseConfigDrive bool `toml:"use_config_drive"`
+
+	// DisableUdatesOnBoot indicates whether to install or update packages on boot during cloud-init.
+	// If set to true `PackageUpgrade` is set to false and `Packages` is set to an empty list in the cloud-init config.
+	//
+	// This value can NOT be overwritten using extra_specs.
+	DisableUpdatesOnBoot bool `toml:"disable_updates_on_boot"`
 }
 
 func (c *Config) Validate() error {

@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/cloudbase/garm v0.0.0-20230328142628-4c906d5f5b4e h1:BALzk3rI5t9WEWcxsEl9hpXneOMdE9NRkNyTqGInRBc=
-github.com/cloudbase/garm v0.0.0-20230328142628-4c906d5f5b4e/go.mod h1:WaBk6Xsol7jfVLj+lhhmpmlyKCl0KapyCs2gYHlYf+o=
+github.com/cloudbase/garm v0.0.0-20230419102915-fdfcc619adbb h1:RDovHxGvZwJfVnp3ejaGXCBA9uiLZjzmCsdkl0C0RcE=
+github.com/cloudbase/garm v0.0.0-20230419102915-fdfcc619adbb/go.mod h1:WaBk6Xsol7jfVLj+lhhmpmlyKCl0KapyCs2gYHlYf+o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=

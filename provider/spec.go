@@ -16,9 +16,7 @@ import (
 	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
-var (
-	defaultBootDiskSize int64 = 50
-)
+var defaultBootDiskSize int64 = 50
 
 type extraSpecs struct {
 	SecurityGroups []string `json:"security_groups,omitempty"`
@@ -78,6 +76,10 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 	bootDiskSize := defaultBootDiskSize
 	if cfg.BootDiskSize != nil {
 		bootDiskSize = *cfg.BootDiskSize
+	}
+
+	if cfg.DisableUpdatesOnBoot {
+		data.UserDataOptions.DisableUpdatesOnBoot = true
 	}
 
 	spec := &machineSpec{
