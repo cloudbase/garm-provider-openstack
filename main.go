@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,16 @@ import (
 	"github.com/cloudbase/garm/runner/providers/external/execution"
 )
 
+var version = flag.Bool("version", false, "prints version")
+var Version string
+
 func main() {
+	flag.Parse()
+	if *version {
+		fmt.Println(Version)
+		return
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), signals...)
 	defer stop()
 
