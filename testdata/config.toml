@@ -43,6 +43,13 @@ root_disk_size = 30
 # This value can be overwritten using extra_specs.
 use_config_drive = false
 
+# DisableUdatesOnBoot indicates whether to install or update packages on boot during
+# cloud-init. If set to true `PackageUpgrade` is set to false and `Packages` is set
+# to an empty list in the cloud-init config.
+
+# This value can NOT be overwritten using extra_specs.
+disable_updates_on_boot = false
+
 # credentials holds information needed to connect to a cloud.
 #
 # This option can NOT be overwritten using extra_specs.
