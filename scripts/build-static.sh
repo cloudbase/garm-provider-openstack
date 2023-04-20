@@ -11,6 +11,10 @@ USER_ID=${USER_ID:-$UID}
 USER_GROUP=${USER_GROUP:-$(id -g)}
 
 cd $GARM_SOURCE
-go build -mod vendor -o $BIN_DIR/garm-provider-openstack -tags osusergo,netgo -ldflags "-linkmode external -extldflags '-static' -s -w" .
+go build -mod vendor -o $BIN_DIR/garm-provider-openstack \
+	-tags osusergo,netgo \
+	-ldflags "-linkmode external -extldflags '-static' -s -w" \
+	-ldflags "-X main.Version=$(git describe --always --dirty)" \
+	.
 
 chown $USER_ID:$USER_GROUP -R "$BIN_DIR"
