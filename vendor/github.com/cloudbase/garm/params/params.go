@@ -21,7 +21,7 @@ import (
 	"github.com/cloudbase/garm/runner/providers/common"
 	"github.com/cloudbase/garm/util/appdefaults"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -222,7 +222,8 @@ type BootstrapInstance struct {
 }
 
 type UserDataOptions struct {
-	DisableUpdatesOnBoot bool `json:"disable_updates_on_boot"`
+	DisableUpdatesOnBoot bool     `json:"disable_updates_on_boot"`
+	ExtraPackages        []string `json:"extra_packages"`
 }
 
 type Tag struct {
