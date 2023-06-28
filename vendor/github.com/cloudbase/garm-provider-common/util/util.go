@@ -35,8 +35,11 @@ import (
 
 	runnerErrors "github.com/cloudbase/garm-provider-common/errors"
 
+<<<<<<< HEAD:vendor/github.com/cloudbase/garm-provider-common/util/util.go
 	commonParams "github.com/cloudbase/garm-provider-common/params"
 
+=======
+>>>>>>> 12964b7 (bump garm version):vendor/github.com/cloudbase/garm/util/util.go
 	"github.com/google/go-github/v53/github"
 	"github.com/google/uuid"
 	gorillaHandlers "github.com/gorilla/handlers"
@@ -188,7 +191,114 @@ func OSToOSType(os string) (commonParams.OSType, error) {
 	return osType, nil
 }
 
+<<<<<<< HEAD:vendor/github.com/cloudbase/garm-provider-common/util/util.go
 func GetTools(osType commonParams.OSType, osArch commonParams.OSArch, tools []*github.RunnerApplicationDownload) (github.RunnerApplicationDownload, error) {
+=======
+func GithubClient(ctx context.Context, token string, credsDetails params.GithubCredentials) (common.GithubClient, common.GithubEnterpriseClient, error) {
+	var roots *x509.CertPool
+	if credsDetails.CABundle != nil && len(credsDetails.CABundle) > 0 {
+		roots = x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM(credsDetails.CABundle)
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to parse CA cert")
+		}
+	}
+	httpTransport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			ClientCAs: roots,
+		},
+	}
+	httpClient := &http.Client{Transport: httpTransport}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+
+	ghClient, err := github.NewEnterpriseClient(credsDetails.APIBaseURL, credsDetails.UploadBaseURL, tc)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "fetching github client")
+	}
+
+	return ghClient.Actions, ghClient.Enterprise, nil
+}
+
+func GetCloudConfig(bootstrapParams params.BootstrapInstance, tools github.RunnerApplicationDownload, runnerName string) (string, error) {
+	if tools.Filename == nil {
+		return "", fmt.Errorf("missing tools filename")
+	}
+
+	if tools.DownloadURL == nil {
+		return "", fmt.Errorf("missing tools download URL")
+	}
+
+	var tempToken string
+	if tools.TempDownloadToken != nil {
+		tempToken = *tools.TempDownloadToken
+	}
+
+	installRunnerParams := cloudconfig.InstallRunnerParams{
+		FileName:          *tools.Filename,
+		DownloadURL:       *tools.DownloadURL,
+		TempDownloadToken: tempToken,
+		MetadataURL:       bootstrapParams.MetadataURL,
+		RunnerUsername:    appdefaults.DefaultUser,
+		RunnerGroup:       appdefaults.DefaultUser,
+		RepoURL:           bootstrapParams.RepoURL,
+		RunnerName:        runnerName,
+		RunnerLabels:      strings.Join(bootstrapParams.Labels, ","),
+		CallbackURL:       bootstrapParams.CallbackURL,
+		CallbackToken:     bootstrapParams.InstanceToken,
+		GitHubRunnerGroup: bootstrapParams.GitHubRunnerGroup,
+	}
+	if bootstrapParams.CACertBundle != nil && len(bootstrapParams.CACertBundle) > 0 {
+		installRunnerParams.CABundle = string(bootstrapParams.CACertBundle)
+	}
+
+	installScript, err := cloudconfig.InstallRunnerScript(installRunnerParams, bootstrapParams.OSType)
+	if err != nil {
+		return "", errors.Wrap(err, "generating script")
+	}
+
+	var asStr string
+	switch bootstrapParams.OSType {
+	case params.Linux:
+		cloudCfg := cloudconfig.NewDefaultCloudInitConfig()
+
+		if bootstrapParams.UserDataOptions.DisableUpdatesOnBoot {
+			cloudCfg.PackageUpgrade = false
+			cloudCfg.Packages = []string{}
+		}
+		for _, pkg := range bootstrapParams.UserDataOptions.ExtraPackages {
+			cloudCfg.AddPackage(pkg)
+		}
+
+		cloudCfg.AddSSHKey(bootstrapParams.SSHKeys...)
+		cloudCfg.AddFile(installScript, "/install_runner.sh", "root:root", "755")
+		cloudCfg.AddRunCmd(fmt.Sprintf("su -l -c /install_runner.sh %s", appdefaults.DefaultUser))
+		cloudCfg.AddRunCmd("rm -f /install_runner.sh")
+		if bootstrapParams.CACertBundle != nil && len(bootstrapParams.CACertBundle) > 0 {
+			if err := cloudCfg.AddCACert(bootstrapParams.CACertBundle); err != nil {
+				return "", errors.Wrap(err, "adding CA cert bundle")
+			}
+		}
+		var err error
+		asStr, err = cloudCfg.Serialize()
+		if err != nil {
+			return "", errors.Wrap(err, "creating cloud config")
+		}
+	case params.Windows:
+		asStr = string(installScript)
+	default:
+		return "", fmt.Errorf("unknown os type: %s", bootstrapParams.OSType)
+	}
+
+	return asStr, nil
+}
+
+func GetTools(osType params.OSType, osArch params.OSArch, tools []*github.RunnerApplicationDownload) (github.RunnerApplicationDownload, error) {
+>>>>>>> 12964b7 (bump garm version):vendor/github.com/cloudbase/garm/util/util.go
 	// Validate image OS. Linux only for now.
 	switch osType {
 	case commonParams.Linux:
