@@ -223,6 +223,7 @@ type BootstrapInstance struct {
 
 type UserDataOptions struct {
 	DisableUpdatesOnBoot bool     `json:"disable_updates_on_boot"`
+	EnableBootDebug      bool     `json:"enable_boot_debug"`
 	ExtraPackages        []string `json:"extra_packages"`
 }
 

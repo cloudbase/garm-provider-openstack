@@ -25,6 +25,10 @@ import (
 
 var CloudConfigTemplate = `#!/bin/bash
 
+{{- if .EnableBootDebug }}
+set -x
+{{- end }}
+
 set -e
 set -o pipefail
 
@@ -416,6 +420,7 @@ type InstallRunnerParams struct {
 	TempDownloadToken string
 	CABundle          string
 	GitHubRunnerGroup string
+	EnableBootDebug   bool
 }
 
 func InstallRunnerScript(installParams InstallRunnerParams, osType params.OSType) ([]byte, error) {
