@@ -239,6 +239,10 @@ func GetCloudConfig(bootstrapParams params.BootstrapInstance, tools github.Runne
 		tempToken = *tools.TempDownloadToken
 	}
 
+	type ExtraSpecs struct {
+		EnableBootDebug bool `json:"enable_boot_debug"`
+	}
+
 	installRunnerParams := cloudconfig.InstallRunnerParams{
 		FileName:          *tools.Filename,
 		DownloadURL:       *tools.DownloadURL,
@@ -252,6 +256,7 @@ func GetCloudConfig(bootstrapParams params.BootstrapInstance, tools github.Runne
 		CallbackURL:       bootstrapParams.CallbackURL,
 		CallbackToken:     bootstrapParams.InstanceToken,
 		GitHubRunnerGroup: bootstrapParams.GitHubRunnerGroup,
+		EnableBootDebug:   bootstrapParams.UserDataOptions.EnableBootDebug,
 	}
 	if bootstrapParams.CACertBundle != nil && len(bootstrapParams.CACertBundle) > 0 {
 		installRunnerParams.CABundle = string(bootstrapParams.CACertBundle)
