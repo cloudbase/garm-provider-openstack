@@ -368,6 +368,29 @@ func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
 	}); err != nil {
 		return nil, fmt.Errorf("failed to get image with name or id %s: %w", nameOrID, err)
 	}
+	// try again but look for community images
+	// unfortunately, the API does not support filtering by visibility: all.
+	opts = images.ListOpts{
+		Name:       nameOrID,
+		Visibility: images.ImageVisibilityCommunity,
+	}
+	// perhaps it's a name. List all images and look for the image by name.
+	if err := images.List(o.image, opts).EachPage(func(page pagination.Page) (bool, error) {
+		imgResults, err := images.ExtractImages(page)
+		if err != nil {
+			return false, err
+		}
+		for _, img := range imgResults {
+			if img.ID == nameOrID || img.Name == nameOrID {
+				// return the first one we find.
+				result = &img
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to get image with name or id %s: %w", nameOrID, err)
+	}
 
 	if result == nil {
 		return nil, fmt.Errorf("failed to find image with name or id %s", nameOrID)
