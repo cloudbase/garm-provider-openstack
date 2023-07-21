@@ -86,6 +86,13 @@ type Config struct {
 	// This value can be overwritten using extra_specs.
 	UseConfigDrive bool `toml:"use_config_drive"`
 
+	// AllowedImageOwners is a list of image owners that are allowed to be used.
+	// If this is empty, all images are allowed.
+	// If not empty, only images owned by the specified owners are allowed.
+	//
+	// This value can be overwritten using extra_specs.
+	AllowedImageOwners []string `toml:"allowed_image_owners"`
+
 	// DisableUdatesOnBoot indicates whether to install or update packages on boot during cloud-init.
 	// If set to true `PackageUpgrade` is set to false and `Packages` is set to an empty list in the cloud-init config.
 	//
