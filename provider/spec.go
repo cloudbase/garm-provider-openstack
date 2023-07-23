@@ -18,9 +18,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cloudbase/garm/params"
-	"github.com/cloudbase/garm/util"
-	"github.com/google/go-github/v48/github"
+	"github.com/cloudbase/garm-provider-common/cloudconfig"
+	"github.com/cloudbase/garm-provider-common/params"
+	"github.com/cloudbase/garm-provider-common/util"
+	"github.com/google/go-github/v53/github"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -214,7 +215,7 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 func (m *machineSpec) ComposeUserData() ([]byte, error) {
 	switch m.BootstrapParams.OSType {
 	case params.Linux, params.Windows:
-		udata, err := util.GetCloudConfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
+		udata, err := cloudconfig.GetCloudConfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate userdata: %w", err)
 		}

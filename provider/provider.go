@@ -21,9 +21,8 @@ import (
 	"github.com/cloudbase/garm-provider-openstack/client"
 	"github.com/cloudbase/garm-provider-openstack/config"
 
-	"github.com/cloudbase/garm/params"
-	"github.com/cloudbase/garm/runner/providers/common"
-	"github.com/cloudbase/garm/runner/providers/external/execution"
+	"github.com/cloudbase/garm-provider-common/execution"
+	"github.com/cloudbase/garm-provider-common/params"
 )
 
 var _ execution.ExternalProvider = &openstackProvider{}
@@ -69,7 +68,7 @@ type openstackProvider struct {
 	controllerID string
 }
 
-func openstackServerToInstance(srv client.ServerWithExt) params.Instance {
+func openstackServerToInstance(srv client.ServerWithExt) params.ProviderInstance {
 	addresses := []params.Address{}
 	for _, val := range srv.Addresses {
 		addrs, ok := val.([]interface{})
@@ -110,12 +109,12 @@ func openstackServerToInstance(srv client.ServerWithExt) params.Instance {
 	osName := srv.Metadata["os_name"]
 	osVersion := srv.Metadata["os_version"]
 	status := statusMap[srv.Status]
-	instance := params.Instance{
+	instance := params.ProviderInstance{
 		ProviderID: srv.ID,
 		Name:       srv.Name,
 		OSArch:     params.OSArch(arch),
 		OSType:     params.OSType(osType),
-		Status:     common.InstanceStatus(status),
+		Status:     params.InstanceStatus(status),
 		OSName:     osName,
 		OSVersion:  osVersion,
 		Addresses:  addresses,
@@ -125,46 +124,46 @@ func openstackServerToInstance(srv client.ServerWithExt) params.Instance {
 }
 
 // CreateInstance creates a new compute instance in the provider.
-func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams params.BootstrapInstance) (params.Instance, error) {
+func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams params.BootstrapInstance) (params.ProviderInstance, error) {
 	spec, err := NewMachineSpec(bootstrapParams, a.cfg, a.controllerID)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to build machine spec: %w", err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to build machine spec: %w", err)
 	}
 	flavor, err := a.cli.GetFlavor(spec.Flavor)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to resolve flavor %s: %w", bootstrapParams.Flavor, err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to resolve flavor %s: %w", bootstrapParams.Flavor, err)
 	}
 
 	net, err := a.cli.GetNetwork(spec.NetworkID)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to resolve network %s: %w", spec.NetworkID, err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to resolve network %s: %w", spec.NetworkID, err)
 	}
 
 	image, err := a.cli.GetImage(spec.Image)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to resolve image info: %w", err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to resolve image info: %w", err)
 	}
 	spec.SetSpecFromImage(*image)
 
 	srvCreateOpts, err := spec.GetServerCreateOpts(*flavor, *net, *image)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to get server create options: %w", err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to get server create options: %w", err)
 	}
 
 	var srv client.ServerWithExt
 	if !spec.BootFromVolume {
 		srv, err = a.cli.CreateServerFromImage(srvCreateOpts)
 		if err != nil {
-			return params.Instance{}, fmt.Errorf("failed to create server: %w", err)
+			return params.ProviderInstance{}, fmt.Errorf("failed to create server: %w", err)
 		}
 	} else {
 		createOption, err := spec.GetBootFromVolumeOpts(srvCreateOpts)
 		if err != nil {
-			return params.Instance{}, fmt.Errorf("failed to get boot from volume create options: %w", err)
+			return params.ProviderInstance{}, fmt.Errorf("failed to get boot from volume create options: %w", err)
 		}
 		srv, err = a.cli.CreateServerFromVolume(createOption, spec.BootstrapParams.Name)
 		if err != nil {
-			return params.Instance{}, fmt.Errorf("failed to create server: %w", err)
+			return params.ProviderInstance{}, fmt.Errorf("failed to create server: %w", err)
 		}
 	}
 	return openstackServerToInstance(srv), nil
@@ -179,22 +178,22 @@ func (a *openstackProvider) DeleteInstance(ctx context.Context, instance string)
 }
 
 // GetInstance will return details about one instance.
-func (a *openstackProvider) GetInstance(ctx context.Context, instance string) (params.Instance, error) {
+func (a *openstackProvider) GetInstance(ctx context.Context, instance string) (params.ProviderInstance, error) {
 	srv, err := a.cli.GetServer(instance)
 	if err != nil {
-		return params.Instance{}, fmt.Errorf("failed to get server: %w", err)
+		return params.ProviderInstance{}, fmt.Errorf("failed to get server: %w", err)
 	}
 	return openstackServerToInstance(srv), nil
 }
 
 // ListInstances will list all instances for a provider.
-func (a *openstackProvider) ListInstances(ctx context.Context, poolID string) ([]params.Instance, error) {
+func (a *openstackProvider) ListInstances(ctx context.Context, poolID string) ([]params.ProviderInstance, error) {
 	servers, err := a.cli.ListServers(poolID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list servers: %w", err)
 	}
 
-	ret := make([]params.Instance, len(servers))
+	ret := make([]params.ProviderInstance, len(servers))
 	for idx, srv := range servers {
 		ret[idx] = openstackServerToInstance(srv)
 	}
