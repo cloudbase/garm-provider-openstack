@@ -22,9 +22,7 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/cloudbase/garm v0.0.0-20230419102915-fdfcc619adbb
-## explicit; go 1.20
-# github.com/cloudbase/garm-provider-common v0.0.0-20230723212858-356d2676c9e8
+# github.com/cloudbase/garm-provider-common v0.0.0-20230723225907-c058d92fd686
 ## explicit; go 1.20
 github.com/cloudbase/garm-provider-common/cloudconfig
 github.com/cloudbase/garm-provider-common/defaults
@@ -52,8 +50,6 @@ github.com/felixge/httpsnoop
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-# github.com/google/go-github/v48 v48.2.0
-## explicit; go 1.17
 # github.com/google/go-github/v53 v53.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v53/github
@@ -103,8 +99,6 @@ github.com/mitchellh/go-homedir
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
-## explicit
 # github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 ## explicit; go 1.18
 github.com/teris-io/shortid
