@@ -23,8 +23,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/cloudbase/garm-provider-common/execution"
+
 	"github.com/cloudbase/garm-provider-openstack/provider"
-	"github.com/cloudbase/garm/runner/providers/external/execution"
 )
 
 var signals = []os.Signal{
