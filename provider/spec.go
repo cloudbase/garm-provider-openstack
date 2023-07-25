@@ -34,12 +34,13 @@ import (
 var defaultBootDiskSize int64 = 50
 
 type extraSpecs struct {
-	SecurityGroups []string `json:"security_groups,omitempty"`
-	NetworkID      string   `json:"network_id"`
-	StorageBackend string   `json:"storage_backend,omitempty"`
-	BootFromVolume *bool    `json:"boot_from_volume,omitempty"`
-	BootDiskSize   *int64   `json:"boot_disk_size,omitempty"`
-	UseConfigDrive *bool    `json:"use_config_drive"`
+	SecurityGroups  []string `json:"security_groups,omitempty"`
+	NetworkID       string   `json:"network_id"`
+	StorageBackend  string   `json:"storage_backend,omitempty"`
+	BootFromVolume  *bool    `json:"boot_from_volume,omitempty"`
+	BootDiskSize    *int64   `json:"boot_disk_size,omitempty"`
+	UseConfigDrive  *bool    `json:"use_config_drive"`
+	EnableBootDebug *bool    `json:"enable_boot_debug"`
 }
 
 func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, error) {
@@ -49,7 +50,7 @@ func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, err
 
 	var spec extraSpecs
 	if err := json.Unmarshal(data.ExtraSpecs, &spec); err != nil {
-		return extraSpecs{}, fmt.Errorf("failed to unmarshal extra_specs")
+		return extraSpecs{}, fmt.Errorf("failed to unmarshal extra_specs: %w", err)
 	}
 
 	return spec, nil
@@ -95,6 +96,10 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 
 	if cfg.DisableUpdatesOnBoot {
 		data.UserDataOptions.DisableUpdatesOnBoot = true
+	}
+
+	if cfg.EnableBootDebug {
+		data.UserDataOptions.EnableBootDebug = true
 	}
 
 	spec := &machineSpec{
@@ -209,6 +214,10 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 
 	if spec.UseConfigDrive != nil {
 		m.UseConfigDrive = *spec.UseConfigDrive
+	}
+
+	if spec.EnableBootDebug != nil {
+		m.BootstrapParams.UserDataOptions.EnableBootDebug = *spec.EnableBootDebug
 	}
 }
 

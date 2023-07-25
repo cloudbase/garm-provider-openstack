@@ -91,6 +91,13 @@ type Config struct {
 	//
 	// This value can NOT be overwritten using extra_specs.
 	DisableUpdatesOnBoot bool `toml:"disable_updates_on_boot"`
+
+	// EnableBootDebug indicates whether to enable debug mode during boot / cloud-init.
+	// If set to true `set -x` is added to the cloud-init config.
+	// Attention: This will might expose sensitive data in the logs! Do not use in production!
+	//
+	// This value can be overwritten using extra_specs.
+	EnableBootDebug bool `toml:"enable_boot_debug"`
 }
 
 func (c *Config) Validate() error {
