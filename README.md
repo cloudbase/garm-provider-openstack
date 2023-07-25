@@ -66,6 +66,13 @@ To this end, this provider supports the following extra specs schema:
         "enable_boot_debug": {
             "type": "boolean",
             "description": "Enable cloud-init debug mode. Adds `set -x` into the cloud-init script."
+        },
+        "allow_image_owners": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "A list of image owners to allow when creating the instance. If not specified, all images will be allowed." 
         }
     }
 }
