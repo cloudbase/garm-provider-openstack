@@ -62,6 +62,10 @@ To this end, this provider supports the following extra specs schema:
         "use_config_drive": {
             "type": "boolean",
             "description": "Use config drive."
+        },
+        "enable_boot_debug": {
+            "type": "boolean",
+            "description": "Enable cloud-init debug mode. Adds `set -x` into the cloud-init script."
         }
     }
 }
