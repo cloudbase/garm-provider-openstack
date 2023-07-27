@@ -349,6 +349,11 @@ func (o *OpenstackClient) GetImage(nameOrID, imageVisibility string) (*images.Im
 		return result, nil
 	}
 
+	// ensure default
+	if imageVisibility == "" {
+		imageVisibility = "public"
+	}
+
 	opts := images.ListOpts{
 		Name:       nameOrID,
 		Visibility: images.ImageVisibility(imageVisibility),

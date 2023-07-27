@@ -133,7 +133,7 @@ func (c *Config) Validate() error {
 }
 
 func IsValidVisibility(visibility string) bool {
-	if visibility != "public" && visibility != "private" && visibility != "community" && visibility != "shared" && visibility != "all" {
+	if visibility != "" && visibility != "public" && visibility != "private" && visibility != "community" && visibility != "shared" && visibility != "all" {
 		return false
 	}
 	return true
