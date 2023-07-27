@@ -86,6 +86,20 @@ type Config struct {
 	// This value can be overwritten using extra_specs.
 	UseConfigDrive bool `toml:"use_config_drive"`
 
+	// AllowedImageOwners is a list of image owners that are allowed to be used.
+	// If this is empty, all images are allowed.
+	// If not empty, only images owned by the specified owners are allowed.
+	//
+	// This value can be overwritten using extra_specs.
+	AllowedImageOwners []string `toml:"allowed_image_owners"`
+
+	// ImageVisibility is the image visibility to use when searching for images.
+	// If this is empty, we will use "public".
+	// Other possible values are "private", "community" and "shared".
+	//
+	// This value can be overwritten using extra_specs.
+	ImageVisibility string `toml:"image_visibility"`
+
 	// DisableUdatesOnBoot indicates whether to install or update packages on boot during cloud-init.
 	// If set to true `PackageUpgrade` is set to false and `Packages` is set to an empty list in the cloud-init config.
 	//
@@ -111,7 +125,22 @@ func (c *Config) Validate() error {
 	if c.DefaultNetworkID == "" {
 		return fmt.Errorf("missing network_id")
 	}
+
+	if !IsValidVisibilityOrEmpty(c.ImageVisibility) {
+		return fmt.Errorf("invalid image_visibility: %s", c.ImageVisibility)
+	}
 	return nil
+}
+
+func IsValidVisibility(visibility string) bool {
+	if visibility != "public" && visibility != "private" && visibility != "community" && visibility != "shared" && visibility != "all" {
+		return false
+	}
+	return true
+}
+
+func IsValidVisibilityOrEmpty(visibility string) bool {
+	return visibility == "" || IsValidVisibility(visibility)
 }
 
 // Credentials holds the paths on disk to the following files:

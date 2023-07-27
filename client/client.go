@@ -337,7 +337,7 @@ func (o *OpenstackClient) GetFlavor(nameOrId string) (*flavors.Flavor, error) {
 }
 
 // GetImage gets details of an image passed in by ID.
-func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
+func (o *OpenstackClient) GetImage(nameOrID, imageVisibility string) (*images.Image, error) {
 	var result *images.Image
 	var err error
 
@@ -348,8 +348,15 @@ func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
 		}
 		return result, nil
 	}
+
+	// ensure default
+	if imageVisibility == "" {
+		imageVisibility = "public"
+	}
+
 	opts := images.ListOpts{
-		Name: nameOrID,
+		Name:       nameOrID,
+		Visibility: images.ImageVisibility(imageVisibility),
 	}
 	// perhaps it's a name. List all images and look for the image by name.
 	if err := images.List(o.image, opts).EachPage(func(page pagination.Page) (bool, error) {
@@ -370,7 +377,7 @@ func (o *OpenstackClient) GetImage(nameOrID string) (*images.Image, error) {
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf("failed to find image with name or id %s", nameOrID)
+		return nil, fmt.Errorf("failed to find image with name or id %s and visibility '%s'", nameOrID, imageVisibility)
 	}
 
 	return result, nil

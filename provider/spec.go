@@ -34,13 +34,15 @@ import (
 var defaultBootDiskSize int64 = 50
 
 type extraSpecs struct {
-	SecurityGroups  []string `json:"security_groups,omitempty"`
-	NetworkID       string   `json:"network_id"`
-	StorageBackend  string   `json:"storage_backend,omitempty"`
-	BootFromVolume  *bool    `json:"boot_from_volume,omitempty"`
-	BootDiskSize    *int64   `json:"boot_disk_size,omitempty"`
-	UseConfigDrive  *bool    `json:"use_config_drive"`
-	EnableBootDebug *bool    `json:"enable_boot_debug"`
+	SecurityGroups     []string `json:"security_groups,omitempty"`
+	AllowedImageOwners []string `json:"allowed_image_owners,omitempty"`
+	ImageVisibility    string   `json:"image_visibility,omitempty"`
+	NetworkID          string   `json:"network_id"`
+	StorageBackend     string   `json:"storage_backend,omitempty"`
+	BootFromVolume     *bool    `json:"boot_from_volume,omitempty"`
+	BootDiskSize       *int64   `json:"boot_disk_size,omitempty"`
+	UseConfigDrive     *bool    `json:"use_config_drive"`
+	EnableBootDebug    *bool    `json:"enable_boot_debug"`
 }
 
 func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, error) {
@@ -103,18 +105,20 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 	}
 
 	spec := &machineSpec{
-		StorageBackend:  cfg.DefaultStorageBackend,
-		SecurityGroups:  cfg.DefaultSecurityGroups,
-		NetworkID:       cfg.DefaultNetworkID,
-		BootFromVolume:  cfg.BootFromVolume,
-		BootDiskSize:    bootDiskSize,
-		UseConfigDrive:  cfg.UseConfigDrive,
-		Flavor:          data.Flavor,
-		Image:           data.Image,
-		Tools:           tools,
-		Tags:            getTags(controllerID, data.PoolID, data.Name),
-		BootstrapParams: data,
-		Properties:      getProperties(data, controllerID),
+		StorageBackend:     cfg.DefaultStorageBackend,
+		SecurityGroups:     cfg.DefaultSecurityGroups,
+		AllowedImageOwners: cfg.AllowedImageOwners,
+		ImageVisibility:    cfg.ImageVisibility,
+		NetworkID:          cfg.DefaultNetworkID,
+		BootFromVolume:     cfg.BootFromVolume,
+		BootDiskSize:       bootDiskSize,
+		UseConfigDrive:     cfg.UseConfigDrive,
+		Flavor:             data.Flavor,
+		Image:              data.Image,
+		Tools:              tools,
+		Tags:               getTags(controllerID, data.PoolID, data.Name),
+		BootstrapParams:    data,
+		Properties:         getProperties(data, controllerID),
 	}
 	spec.MergeExtraSpecs(extraSpec)
 
@@ -126,18 +130,20 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 }
 
 type machineSpec struct {
-	StorageBackend  string
-	SecurityGroups  []string
-	NetworkID       string
-	BootFromVolume  bool
-	BootDiskSize    int64
-	UseConfigDrive  bool
-	Flavor          string
-	Image           string
-	Tools           github.RunnerApplicationDownload
-	Tags            []string
-	Properties      map[string]string
-	BootstrapParams params.BootstrapInstance
+	StorageBackend     string
+	SecurityGroups     []string
+	AllowedImageOwners []string
+	ImageVisibility    string
+	NetworkID          string
+	BootFromVolume     bool
+	BootDiskSize       int64
+	UseConfigDrive     bool
+	Flavor             string
+	Image              string
+	Tools              github.RunnerApplicationDownload
+	Tags               []string
+	Properties         map[string]string
+	BootstrapParams    params.BootstrapInstance
 }
 
 func (m *machineSpec) Validate() error {
@@ -216,8 +222,18 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 		m.UseConfigDrive = *spec.UseConfigDrive
 	}
 
+	if spec.AllowedImageOwners != nil {
+		m.AllowedImageOwners = spec.AllowedImageOwners
+	}
+
 	if spec.EnableBootDebug != nil {
 		m.BootstrapParams.UserDataOptions.EnableBootDebug = *spec.EnableBootDebug
+	}
+
+	// an empty visibility in the extra specs should not override the
+	// the config's visibility
+	if config.IsValidVisibility(spec.ImageVisibility) {
+		m.ImageVisibility = spec.ImageVisibility
 	}
 }
 

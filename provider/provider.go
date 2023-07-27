@@ -139,10 +139,25 @@ func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams 
 		return params.ProviderInstance{}, fmt.Errorf("failed to resolve network %s: %w", spec.NetworkID, err)
 	}
 
-	image, err := a.cli.GetImage(spec.Image)
+	image, err := a.cli.GetImage(spec.Image, spec.ImageVisibility)
 	if err != nil {
 		return params.ProviderInstance{}, fmt.Errorf("failed to resolve image info: %w", err)
 	}
+
+	// verify owner
+	if len(spec.AllowedImageOwners) > 0 {
+		allowed := false
+		for _, owner := range spec.AllowedImageOwners {
+			if owner == image.Owner {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return params.ProviderInstance{}, fmt.Errorf("image owner %s is not allowed, allowed owners: %v", image.Owner, spec.AllowedImageOwners)
+		}
+	}
+
 	spec.SetSpecFromImage(*image)
 
 	srvCreateOpts, err := spec.GetServerCreateOpts(*flavor, *net, *image)
