@@ -230,6 +230,8 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 		m.BootstrapParams.UserDataOptions.EnableBootDebug = *spec.EnableBootDebug
 	}
 
+	// an empty visibility in the extra specs should not override the
+	// the config's visibility
 	if config.IsValidVisibility(spec.ImageVisibility) {
 		m.ImageVisibility = spec.ImageVisibility
 	}

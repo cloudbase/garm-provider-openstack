@@ -126,17 +126,21 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("missing network_id")
 	}
 
-	if !IsValidVisibility(c.ImageVisibility) {
+	if !IsValidVisibilityOrEmpty(c.ImageVisibility) {
 		return fmt.Errorf("invalid image_visibility: %s", c.ImageVisibility)
 	}
 	return nil
 }
 
 func IsValidVisibility(visibility string) bool {
-	if visibility != "" && visibility != "public" && visibility != "private" && visibility != "community" && visibility != "shared" && visibility != "all" {
+	if visibility != "public" && visibility != "private" && visibility != "community" && visibility != "shared" && visibility != "all" {
 		return false
 	}
 	return true
+}
+
+func IsValidVisibilityOrEmpty(visibility string) bool {
+	return visibility == "" || IsValidVisibility(visibility)
 }
 
 // Credentials holds the paths on disk to the following files:
