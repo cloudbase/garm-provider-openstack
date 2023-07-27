@@ -36,6 +36,7 @@ var defaultBootDiskSize int64 = 50
 type extraSpecs struct {
 	SecurityGroups     []string `json:"security_groups,omitempty"`
 	AllowedImageOwners []string `json:"allowed_image_owners,omitempty"`
+	ImageVisibility    string   `json:"image_visibility,omitempty"`
 	NetworkID          string   `json:"network_id"`
 	StorageBackend     string   `json:"storage_backend,omitempty"`
 	BootFromVolume     *bool    `json:"boot_from_volume,omitempty"`
@@ -107,6 +108,7 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		StorageBackend:     cfg.DefaultStorageBackend,
 		SecurityGroups:     cfg.DefaultSecurityGroups,
 		AllowedImageOwners: cfg.AllowedImageOwners,
+		ImageVisibility:    cfg.ImageVisibility,
 		NetworkID:          cfg.DefaultNetworkID,
 		BootFromVolume:     cfg.BootFromVolume,
 		BootDiskSize:       bootDiskSize,
@@ -131,6 +133,7 @@ type machineSpec struct {
 	StorageBackend     string
 	SecurityGroups     []string
 	AllowedImageOwners []string
+	ImageVisibility    string
 	NetworkID          string
 	BootFromVolume     bool
 	BootDiskSize       int64
@@ -225,6 +228,10 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 
 	if spec.EnableBootDebug != nil {
 		m.BootstrapParams.UserDataOptions.EnableBootDebug = *spec.EnableBootDebug
+	}
+
+	if config.IsValidVisibility(spec.ImageVisibility) {
+		m.ImageVisibility = spec.ImageVisibility
 	}
 }
 
