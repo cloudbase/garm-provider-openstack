@@ -22,7 +22,7 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/cloudbase/garm-provider-common v0.0.0-20230724114054-7aa0a3dfbce0
+# github.com/cloudbase/garm-provider-common v0.0.0-20230822153955-887987ac3307
 ## explicit; go 1.20
 github.com/cloudbase/garm-provider-common/cloudconfig
 github.com/cloudbase/garm-provider-common/defaults
@@ -53,9 +53,9 @@ github.com/felixge/httpsnoop
 # github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-# github.com/google/go-github/v53 v53.2.0
+# github.com/google/go-github/v54 v54.0.0
 ## explicit; go 1.17
-github.com/google/go-github/v53/github
+github.com/google/go-github/v54/github
 # github.com/google/go-querystring v1.1.0
 ## explicit; go 1.10
 github.com/google/go-querystring/query
@@ -96,6 +96,9 @@ github.com/gorilla/handlers
 # github.com/mattn/go-isatty v0.0.19
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/minio/sio v0.3.1
+## explicit; go 1.18
+github.com/minio/sio
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
@@ -111,27 +114,31 @@ github.com/stretchr/testify/assert
 # github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 ## explicit; go 1.18
 github.com/teris-io/shortid
-# golang.org/x/crypto v0.7.0
+# golang.org/x/crypto v0.12.0
 ## explicit; go 1.17
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
+golang.org/x/crypto/chacha20
+golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/hkdf
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/sha3
-# golang.org/x/net v0.10.0
+# golang.org/x/net v0.14.0
 ## explicit; go 1.17
 golang.org/x/net/context
-# golang.org/x/oauth2 v0.8.0
-## explicit; go 1.17
+# golang.org/x/oauth2 v0.11.0
+## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.8.0
+# golang.org/x/sys v0.11.0
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.9.0
+# golang.org/x/text v0.12.0
 ## explicit; go 1.17
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -147,7 +154,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/protobuf v1.30.0
+# google.golang.org/protobuf v1.31.0
 ## explicit; go 1.11
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
