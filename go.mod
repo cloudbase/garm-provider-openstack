@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/cloudbase/garm-provider-common v0.0.0-20230823224722-2b9d66c6197b
+	github.com/cloudbase/garm-provider-common v0.0.0-20230824132912-318e784daaf9
 	github.com/google/go-github/v54 v54.0.0
 	github.com/google/uuid v1.3.0
 	github.com/gophercloud/gophercloud v1.1.1
