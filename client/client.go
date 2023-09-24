@@ -357,6 +357,7 @@ func (o *OpenstackClient) GetImage(nameOrID, imageVisibility string) (*images.Im
 	opts := images.ListOpts{
 		Name:       nameOrID,
 		Visibility: images.ImageVisibility(imageVisibility),
+		Status:     images.ImageStatusActive,
 	}
 	// perhaps it's a name. List all images and look for the image by name.
 	if err := images.List(o.image, opts).EachPage(func(page pagination.Page) (bool, error) {
