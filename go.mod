@@ -4,8 +4,7 @@ go 1.20
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/cloudbase/garm-provider-common v0.0.0-20230924074517-dd3e26769a05
-	github.com/google/go-github/v55 v55.0.1-0.20230921135834-aa3fcbe7aabc
+	github.com/cloudbase/garm-provider-common v0.1.0
 	github.com/google/uuid v1.3.0
 	github.com/gophercloud/gophercloud v1.1.1
 	github.com/gophercloud/utils v0.0.0-20230324070755-05e9e7f5ea4d
@@ -16,7 +15,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/minio/sio v0.3.1 // indirect
