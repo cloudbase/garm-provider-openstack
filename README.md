@@ -32,6 +32,7 @@ Garm supports sending opaque json encoded configs to the IaaS providers it hooks
 To this end, this provider supports the following extra specs schema:
 
 ```json
+
 {
     "$schema": "http://cloudbase.it/garm-provider-openstack/schemas/extra_specs#",
     "type": "object",
@@ -74,7 +75,8 @@ To this end, this provider supports the following extra specs schema:
             },
             "description": "A list of image owners to allow when creating the instance. If not specified, all images will be allowed." 
         }
-    }
+    },
+	"additionalProperties": false
 }
 ```
 

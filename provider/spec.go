@@ -26,11 +26,60 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 var defaultBootDiskSize int64 = 50
+
+const jsonSchema string = `
+{
+    "$schema": "http://cloudbase.it/garm-provider-openstack/schemas/extra_specs#",
+    "type": "object",
+    "description": "Schema defining supported extra specs for the Garm OpenStack Provider",
+    "properties": {
+        "security_groups": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "network_id": {
+            "type": "string",
+            "description": "The tenant network to which runners will be connected to."
+        },
+        "storage_backend": {
+            "type": "string",
+            "description": "The cinder backend to use when creating volumes."
+        },
+        "boot_from_volume": {
+            "type": "boolean",
+            "description": "Whether to boot from volume or not. Use this option if the root disk size defined by the flavor is not enough."
+        },
+        "boot_disk_size": {
+            "type": "integer",
+            "description": "The size of the root disk in GB. Default is 50 GB."
+        },
+        "use_config_drive": {
+            "type": "boolean",
+            "description": "Use config drive."
+        },
+        "enable_boot_debug": {
+            "type": "boolean",
+            "description": "Enable cloud-init debug mode. Adds 'set -x' into the cloud-init script."
+        },
+        "allow_image_owners": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": "A list of image owners to allow when creating the instance. If not specified, all images will be allowed." 
+        }
+    },
+	"additionalProperties": false
+}
+`
 
 type extraSpecs struct {
 	SecurityGroups     []string `json:"security_groups,omitempty"`
@@ -44,12 +93,28 @@ type extraSpecs struct {
 	EnableBootDebug    *bool    `json:"enable_boot_debug"`
 }
 
+func jsonSchemaValidation(schema json.RawMessage) error {
+	schemaLoader := gojsonschema.NewStringLoader(jsonSchema)
+	extraSpecsLoader := gojsonschema.NewBytesLoader(schema)
+	result, err := gojsonschema.Validate(schemaLoader, extraSpecsLoader)
+	if err != nil {
+		return fmt.Errorf("failed to validate schema: %w", err)
+	}
+	if !result.Valid() {
+		return fmt.Errorf("schema validation failed: %s", result.Errors())
+	}
+	return nil
+}
+
 func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, error) {
 	if len(data.ExtraSpecs) == 0 {
 		return extraSpecs{}, nil
 	}
 
 	var spec extraSpecs
+	if err := jsonSchemaValidation(data.ExtraSpecs); err != nil {
+		return extraSpecs{}, fmt.Errorf("failed to validate extra specs: %w", err)
+	}
 	if err := json.Unmarshal(data.ExtraSpecs, &spec); err != nil {
 		return extraSpecs{}, fmt.Errorf("failed to unmarshal extra_specs: %w", err)
 	}
