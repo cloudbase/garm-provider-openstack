@@ -33,6 +33,15 @@ import (
 
 var defaultBootDiskSize int64 = 50
 
+type ToolFetchFunc func(osType params.OSType, osArch params.OSArch, tools []params.RunnerApplicationDownload) (params.RunnerApplicationDownload, error)
+
+type GetCloudConfigFunc func(bootstrapParams params.BootstrapInstance, tools params.RunnerApplicationDownload, runnerName string) (string, error)
+
+var (
+	DefaultToolFetch      ToolFetchFunc      = util.GetTools
+	DefaultGetCloudconfig GetCloudConfigFunc = cloudconfig.GetCloudConfig
+)
+
 const jsonSchema string = `
 {
     "$schema": "http://cloudbase.it/garm-provider-openstack/schemas/extra_specs#",
@@ -69,13 +78,17 @@ const jsonSchema string = `
             "type": "boolean",
             "description": "Enable cloud-init debug mode. Adds 'set -x' into the cloud-init script."
         },
-        "allow_image_owners": {
+        "allowed_image_owners": {
             "type": "array",
             "items": {
                 "type": "string"
             },
             "description": "A list of image owners to allow when creating the instance. If not specified, all images will be allowed." 
-        }
+        },
+		"image_visibility": {
+			"type": "string",
+			"description": "The visibility of the image to use."
+		}
     },
 	"additionalProperties": false
 }
@@ -122,7 +135,7 @@ func extraSpecsFromBootstrapData(data params.BootstrapInstance) (extraSpecs, err
 	return spec, nil
 }
 
-func getTags(controllerID, poolID, name string) []string {
+func getTags(controllerID, poolID string) []string {
 	return []string{
 		fmt.Sprintf("%s=%s", poolIDTagName, poolID),
 		fmt.Sprintf("%s=%s", controllerIDTagName, controllerID),
@@ -145,7 +158,7 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		return nil, fmt.Errorf("invalid config")
 	}
 
-	tools, err := util.GetTools(data.OSType, data.OSArch, data.Tools)
+	tools, err := DefaultToolFetch(data.OSType, data.OSArch, data.Tools)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tools: %s", err)
 	}
@@ -180,7 +193,7 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		Flavor:             data.Flavor,
 		Image:              data.Image,
 		Tools:              tools,
-		Tags:               getTags(controllerID, data.PoolID, data.Name),
+		Tags:               getTags(controllerID, data.PoolID),
 		BootstrapParams:    data,
 		Properties:         getProperties(data, controllerID),
 	}
@@ -304,7 +317,7 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 func (m *machineSpec) ComposeUserData() ([]byte, error) {
 	switch m.BootstrapParams.OSType {
 	case params.Linux, params.Windows:
-		udata, err := cloudconfig.GetCloudConfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
+		udata, err := DefaultGetCloudconfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate userdata: %w", err)
 		}
@@ -353,4 +366,8 @@ func (m *machineSpec) GetBootFromVolumeOpts(srvOpts servers.CreateOpts) (bootfro
 		CreateOptsBuilder: srvOpts,
 		BlockDevice:       blockDevices,
 	}, nil
+}
+
+func Ptr[T any](v T) *T {
+	return &v
 }
