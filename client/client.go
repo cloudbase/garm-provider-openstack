@@ -450,7 +450,7 @@ func (o *OpenstackClient) StartServer(nameOrID string) error {
 	}
 
 	if err := startstop.Start(o.compute, srv.ID).ExtractErr(); err != nil {
-		return fmt.Errorf("failed to stop server: %w", err)
+		return fmt.Errorf("failed to start server: %w", err)
 	}
 
 	return nil

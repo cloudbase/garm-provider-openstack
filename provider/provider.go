@@ -231,7 +231,7 @@ func (a *openstackProvider) Stop(ctx context.Context, instance string, force boo
 // Start boots up an instance.
 func (a *openstackProvider) Start(ctx context.Context, instance string) error {
 	if err := a.cli.StartServer(instance); err != nil {
-		return fmt.Errorf("failed to stop server: %w", err)
+		return fmt.Errorf("failed to start server: %w", err)
 	}
 	return nil
 }
