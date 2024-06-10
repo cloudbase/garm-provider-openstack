@@ -43,6 +43,7 @@ var (
 )
 
 const jsonSchema string = `
+
 {
     "$schema": "http://cloudbase.it/garm-provider-openstack/schemas/extra_specs#",
     "type": "object",
@@ -88,7 +89,36 @@ const jsonSchema string = `
 		"image_visibility": {
 			"type": "string",
 			"description": "The visibility of the image to use."
-		}
+		},
+        "disable_updates": {
+            "type": "boolean",
+            "description": "Disable automatic updates on the VM."
+        },
+        "extra_packages": {
+            "type": "array",
+            "description": "Extra packages to install on the VM.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "runner_install_template": {
+            "type": "string",
+            "description": "This option can be used to override the default runner install template. If used, the caller is responsible for the correctness of the template as well as the suitability of the template for the target OS. Use the extra_context extra spec if your template has variables in it that need to be expanded."
+        },
+        "extra_context": {
+            "type": "object",
+            "description": "Extra context that will be passed to the runner_install_template.",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "pre_install_scripts": {
+            "type": "object",
+            "description": "A map of pre-install scripts that will be run before the runner install script. These will run as root and can be used to prep a generic image before we attempt to install the runner. The key of the map is the name of the script as it will be written to disk. The value is a byte array with the contents of the script.",
+            "additionalProperties": {
+                "type": "string"
+            }
+        }
     },
 	"additionalProperties": false
 }
@@ -104,6 +134,8 @@ type extraSpecs struct {
 	BootDiskSize       *int64   `json:"boot_disk_size,omitempty"`
 	UseConfigDrive     *bool    `json:"use_config_drive"`
 	EnableBootDebug    *bool    `json:"enable_boot_debug"`
+	DisableUpdates     *bool    `json:"disable_updates"`
+	ExtraPackages      []string `json:"extra_packages"`
 }
 
 func jsonSchemaValidation(schema json.RawMessage) error {
@@ -196,6 +228,7 @@ func NewMachineSpec(data params.BootstrapInstance, cfg *config.Config, controlle
 		Tags:               getTags(controllerID, data.PoolID),
 		BootstrapParams:    data,
 		Properties:         getProperties(data, controllerID),
+		ExtraPackages:      extraSpec.ExtraPackages,
 	}
 	spec.MergeExtraSpecs(extraSpec)
 
@@ -217,6 +250,8 @@ type machineSpec struct {
 	UseConfigDrive     bool
 	Flavor             string
 	Image              string
+	DisableUpdates     bool
+	ExtraPackages      []string
 	Tools              params.RunnerApplicationDownload
 	Tags               []string
 	Properties         map[string]string
@@ -307,6 +342,10 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 		m.BootstrapParams.UserDataOptions.EnableBootDebug = *spec.EnableBootDebug
 	}
 
+	if spec.DisableUpdates != nil {
+		m.DisableUpdates = *spec.DisableUpdates
+	}
+
 	// an empty visibility in the extra specs should not override the
 	// the config's visibility
 	if config.IsValidVisibility(spec.ImageVisibility) {
@@ -315,15 +354,19 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 }
 
 func (m *machineSpec) ComposeUserData() ([]byte, error) {
+	bootstrapParams := m.BootstrapParams
+	bootstrapParams.UserDataOptions.DisableUpdatesOnBoot = m.DisableUpdates
+	bootstrapParams.UserDataOptions.ExtraPackages = m.ExtraPackages
+	bootstrapParams.UserDataOptions.EnableBootDebug = m.BootstrapParams.UserDataOptions.EnableBootDebug
 	switch m.BootstrapParams.OSType {
 	case params.Linux, params.Windows:
-		udata, err := DefaultGetCloudconfig(m.BootstrapParams, m.Tools, m.BootstrapParams.Name)
+		udata, err := cloudconfig.GetCloudConfig(bootstrapParams, m.Tools, bootstrapParams.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate userdata: %w", err)
 		}
 		return []byte(udata), nil
 	}
-	return nil, fmt.Errorf("unsupported OS type for cloud config: %s", m.BootstrapParams.OSType)
+	return nil, fmt.Errorf("unsupported OS type for cloud config: %s", bootstrapParams.OSType)
 }
 
 func (m *machineSpec) GetServerCreateOpts(flavor flavors.Flavor, net networks.Network, img images.Image) (servers.CreateOpts, error) {
