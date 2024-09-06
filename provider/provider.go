@@ -21,11 +21,13 @@ import (
 	"github.com/cloudbase/garm-provider-openstack/client"
 	"github.com/cloudbase/garm-provider-openstack/config"
 
-	"github.com/cloudbase/garm-provider-common/execution"
+	execution "github.com/cloudbase/garm-provider-common/execution/v0.1.0"
 	"github.com/cloudbase/garm-provider-common/params"
 )
 
 var _ execution.ExternalProvider = &openstackProvider{}
+
+var Version = "v0.0.0-unknown"
 
 const (
 	controllerIDTagName = "garm-controller-id"
@@ -234,4 +236,9 @@ func (a *openstackProvider) Start(ctx context.Context, instance string) error {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 	return nil
+}
+
+// GetVersion returns the version of the provider.
+func (a *openstackProvider) GetVersion(ctx context.Context) string {
+	return Version
 }
