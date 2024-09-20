@@ -6,15 +6,22 @@ toolchain go1.22.3
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/cloudbase/garm-provider-common v0.1.4-0.20240906095211-57315d4ac8ae
+	github.com/cloudbase/garm-provider-common v0.1.4-0.20240912084949-899c120c80ce
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud v1.11.0
 	github.com/gophercloud/utils v0.0.0-20230324070755-05e9e7f5ea4d
+	github.com/invopop/jsonschema v0.12.0
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/stretchr/objx v0.5.2 // indirect
+require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

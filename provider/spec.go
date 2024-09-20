@@ -26,6 +26,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/invopop/jsonschema"
 	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
@@ -42,104 +43,35 @@ var (
 	DefaultGetCloudconfig GetCloudConfigFunc = cloudconfig.GetCloudConfig
 )
 
-const jsonSchema string = `
-
-{
-    "$schema": "http://cloudbase.it/garm-provider-openstack/schemas/extra_specs#",
-    "type": "object",
-    "description": "Schema defining supported extra specs for the Garm OpenStack Provider",
-    "properties": {
-        "security_groups": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "network_id": {
-            "type": "string",
-            "description": "The tenant network to which runners will be connected to."
-        },
-        "storage_backend": {
-            "type": "string",
-            "description": "The cinder backend to use when creating volumes."
-        },
-        "boot_from_volume": {
-            "type": "boolean",
-            "description": "Whether to boot from volume or not. Use this option if the root disk size defined by the flavor is not enough."
-        },
-        "boot_disk_size": {
-            "type": "integer",
-            "description": "The size of the root disk in GB. Default is 50 GB."
-        },
-        "use_config_drive": {
-            "type": "boolean",
-            "description": "Use config drive."
-        },
-        "enable_boot_debug": {
-            "type": "boolean",
-            "description": "Enable cloud-init debug mode. Adds 'set -x' into the cloud-init script."
-        },
-        "allowed_image_owners": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            },
-            "description": "A list of image owners to allow when creating the instance. If not specified, all images will be allowed." 
-        },
-		"image_visibility": {
-			"type": "string",
-			"description": "The visibility of the image to use."
-		},
-        "disable_updates": {
-            "type": "boolean",
-            "description": "Disable automatic updates on the VM."
-        },
-        "extra_packages": {
-            "type": "array",
-            "description": "Extra packages to install on the VM.",
-            "items": {
-                "type": "string"
-            }
-        },
-        "runner_install_template": {
-            "type": "string",
-            "description": "This option can be used to override the default runner install template. If used, the caller is responsible for the correctness of the template as well as the suitability of the template for the target OS. Use the extra_context extra spec if your template has variables in it that need to be expanded."
-        },
-        "extra_context": {
-            "type": "object",
-            "description": "Extra context that will be passed to the runner_install_template.",
-            "additionalProperties": {
-                "type": "string"
-            }
-        },
-        "pre_install_scripts": {
-            "type": "object",
-            "description": "A map of pre-install scripts that will be run before the runner install script. These will run as root and can be used to prep a generic image before we attempt to install the runner. The key of the map is the name of the script as it will be written to disk. The value is a byte array with the contents of the script.",
-            "additionalProperties": {
-                "type": "string"
-            }
-        }
-    },
-	"additionalProperties": false
-}
-`
-
 type extraSpecs struct {
 	SecurityGroups     []string `json:"security_groups,omitempty"`
-	AllowedImageOwners []string `json:"allowed_image_owners,omitempty"`
-	ImageVisibility    string   `json:"image_visibility,omitempty"`
-	NetworkID          string   `json:"network_id"`
-	StorageBackend     string   `json:"storage_backend,omitempty"`
-	BootFromVolume     *bool    `json:"boot_from_volume,omitempty"`
-	BootDiskSize       *int64   `json:"boot_disk_size,omitempty"`
-	UseConfigDrive     *bool    `json:"use_config_drive"`
-	EnableBootDebug    *bool    `json:"enable_boot_debug"`
-	DisableUpdates     *bool    `json:"disable_updates"`
-	ExtraPackages      []string `json:"extra_packages"`
+	AllowedImageOwners []string `json:"allowed_image_owners,omitempty" jsonschema:"description=A list of image owners to allow when creating the instance. If not specified, all images will be allowed."`
+	ImageVisibility    string   `json:"image_visibility,omitempty" jsonschema:"description=The visibility of the image to use."`
+	NetworkID          string   `json:"network_id,omitempty" jsonschema:"description=The tenant network to which runners will be connected to."`
+	StorageBackend     string   `json:"storage_backend,omitempty" jsonschema:"description=The cinder backend to use when creating volumes."`
+	BootFromVolume     *bool    `json:"boot_from_volume,omitempty" jsonschema:"description=Whether to boot from volume or not. Use this option if the root disk size defined by the flavor is not enough."`
+	BootDiskSize       *int64   `json:"boot_disk_size,omitempty" jsonschema:"description=The size of the root disk in GB. Default is 50 GB."`
+	UseConfigDrive     *bool    `json:"use_config_drive,omitempty" jsonschema:"description=Use config drive."`
+	EnableBootDebug    *bool    `json:"enable_boot_debug,omitempty" jsonschema:"description=Enable cloud-init debug mode. Adds 'set -x' into the cloud-init script."`
+	DisableUpdates     *bool    `json:"disable_updates,omitempty" jsonschema:"description=Disable automatic updates on the VM."`
+	ExtraPackages      []string `json:"extra_packages,omitempty" jsonschema:"description=Extra packages to install on the VM."`
+	// The Cloudconfig struct from common package
+	cloudconfig.CloudConfigSpec
+}
+
+func generateJSONSchema() *jsonschema.Schema {
+	reflector := jsonschema.Reflector{
+		AllowAdditionalProperties: false,
+	}
+	// Reflect the extraSpecs struct
+	schema := reflector.Reflect(extraSpecs{})
+
+	return schema
 }
 
 func jsonSchemaValidation(schema json.RawMessage) error {
-	schemaLoader := gojsonschema.NewStringLoader(jsonSchema)
+	jsonSchema := generateJSONSchema()
+	schemaLoader := gojsonschema.NewGoLoader(jsonSchema)
 	extraSpecsLoader := gojsonschema.NewBytesLoader(schema)
 	result, err := gojsonschema.Validate(schemaLoader, extraSpecsLoader)
 	if err != nil {

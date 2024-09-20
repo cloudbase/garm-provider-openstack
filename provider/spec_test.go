@@ -18,65 +18,11 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/cloudbase/garm-provider-common/cloudconfig"
 	"github.com/cloudbase/garm-provider-common/params"
 	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestJsonSchemaValidation(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     json.RawMessage
-		errString string
-	}{
-		{
-			name: "valid",
-			input: json.RawMessage(`{
-				"boot_from_volume": true,
-				"security_groups": ["allow_ssh", "allow_web"],
-				"network_id": "542b68dd-4b3d-459d-8531-34d5e779d4d6",
-				"storage_backend": "cinder_nvme",
-				"boot_disk_size": 150,
-				"use_config_drive": false,
-				"enable_boot_debug": true,
-				"allowed_image_owners": ["123456"],
-				"image_visibility": "all"
-			}`),
-			errString: "",
-		},
-		{
-			name: "invalid input - wrong data type",
-			input: json.RawMessage(`{
-				"boot_from_volume": "true"
-			}`),
-			errString: "schema validation failed: [boot_from_volume: Invalid type. Expected: boolean, given: string]",
-		},
-		{
-			name: "invalid input - extra field",
-			input: json.RawMessage(`{
-				"boot_from_volume": true,
-				"extra_field": "extra"
-			}`),
-			errString: "Additional property extra_field is not allowed",
-		},
-		{
-			name:      "valid input - empty extra specs",
-			input:     json.RawMessage(`{}`),
-			errString: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := jsonSchemaValidation(tt.input)
-			if tt.errString == "" {
-				assert.NoError(t, err)
-			} else {
-				assert.ErrorContains(t, err, tt.errString)
-			}
-		})
-	}
-}
 
 func Test_machineSpec_MergeExtraSpecs(t *testing.T) {
 	tests := []struct {
@@ -138,7 +84,7 @@ func TestExtraSpecsFromBootstrapParams(t *testing.T) {
 		errString string
 	}{
 		{
-			name: "valid",
+			name: "full specs",
 			input: params.BootstrapInstance{
 				ExtraSpecs: json.RawMessage(`{
 					"security_groups": ["allow_ssh", "allow_web"],
@@ -149,7 +95,12 @@ func TestExtraSpecsFromBootstrapParams(t *testing.T) {
 					"boot_from_volume": true,
 					"boot_disk_size": 150,
 					"use_config_drive": false,
-					"enable_boot_debug": true
+					"enable_boot_debug": true,
+					"disable_updates": true,
+					"extra_packages": ["package1", "package2"],
+					"runner_install_template": "IyEvYmluL2Jhc2gKZWNobyBJbnN0YWxsaW5nIHJ1bm5lci4uLg==",
+					"pre_install_scripts": {"setup.sh": "IyEvYmluL2Jhc2gKZWNobyBTZXR1cCBzY3JpcHQuLi4="},
+					"extra_context": {"key": "value"}
 				}`),
 			},
 			wantSpec: extraSpecs{
@@ -162,14 +113,357 @@ func TestExtraSpecsFromBootstrapParams(t *testing.T) {
 				BootDiskSize:       Ptr(int64(150)),
 				UseConfigDrive:     Ptr(false),
 				EnableBootDebug:    Ptr(true),
+				DisableUpdates:     Ptr(true),
+				ExtraPackages:      []string{"package1", "package2"},
+				CloudConfigSpec: cloudconfig.CloudConfigSpec{
+					RunnerInstallTemplate: []byte("#!/bin/bash\necho Installing runner..."),
+					PreInstallScripts: map[string][]byte{
+						"setup.sh": []byte("#!/bin/bash\necho Setup script..."),
+					},
+					ExtraContext: map[string]string{"key": "value"},
+				},
 			},
 			errString: "",
 		},
 		{
-			name: "invalid",
+			name: "specs just with security groups",
 			input: params.BootstrapInstance{
 				ExtraSpecs: json.RawMessage(`{
-					"image_visibility": "invalid",
+					"security_groups": ["allow_ssh", "allow_web"]
+				}`),
+			},
+			wantSpec: extraSpecs{
+				SecurityGroups: []string{"allow_ssh", "allow_web"},
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with allowed image owners",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"allowed_image_owners": ["123456"]
+				}`),
+			},
+			wantSpec: extraSpecs{
+				AllowedImageOwners: []string{"123456"},
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with image visibility",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"image_visibility": "all"
+				}`),
+			},
+			wantSpec: extraSpecs{
+				ImageVisibility: "all",
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with network ID",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"network_id": "542b68dd-4b3d-459d-8531-34d5e779d4d6"
+				}`),
+			},
+			wantSpec: extraSpecs{
+				NetworkID: "542b68dd-4b3d-459d-8531-34d5e779d4d6",
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with storage backend",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"storage_backend": "cinder_nvme"
+				}`),
+			},
+			wantSpec: extraSpecs{
+				StorageBackend: "cinder_nvme",
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with boot from volume",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"boot_from_volume": true
+				}`),
+			},
+			wantSpec: extraSpecs{
+				BootFromVolume: Ptr(true),
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with boot disk size",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"boot_disk_size": 150
+				}`),
+			},
+			wantSpec: extraSpecs{
+				BootDiskSize: Ptr(int64(150)),
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with use config drive",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"use_config_drive": false
+				}`),
+			},
+			wantSpec: extraSpecs{
+				UseConfigDrive: Ptr(false),
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with enable boot debug",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"enable_boot_debug": true
+				}`),
+			},
+			wantSpec: extraSpecs{
+				EnableBootDebug: Ptr(true),
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with disable updates",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"disable_updates": true
+				}`),
+			},
+			wantSpec: extraSpecs{
+				DisableUpdates: Ptr(true),
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with extra packages",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"extra_packages": ["package1", "package2"]
+				}`),
+			},
+			wantSpec: extraSpecs{
+				ExtraPackages: []string{"package1", "package2"},
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with runner install template",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"runner_install_template": "IyEvYmluL2Jhc2gKZWNobyBJbnN0YWxsaW5nIHJ1bm5lci4uLg=="
+				}`),
+			},
+			wantSpec: extraSpecs{
+				CloudConfigSpec: cloudconfig.CloudConfigSpec{
+					RunnerInstallTemplate: []byte("#!/bin/bash\necho Installing runner..."),
+				},
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with pre install scripts",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"pre_install_scripts": {"setup.sh": "IyEvYmluL2Jhc2gKZWNobyBTZXR1cCBzY3JpcHQuLi4="}
+				}`),
+			},
+			wantSpec: extraSpecs{
+				CloudConfigSpec: cloudconfig.CloudConfigSpec{
+					PreInstallScripts: map[string][]byte{
+						"setup.sh": []byte("#!/bin/bash\necho Setup script..."),
+					},
+				},
+			},
+			errString: "",
+		},
+		{
+			name: "specs just with extra context",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"extra_context": {"key": "value"}
+				}`),
+			},
+			wantSpec: extraSpecs{
+				CloudConfigSpec: cloudconfig.CloudConfigSpec{
+					ExtraContext: map[string]string{"key": "value"},
+				},
+			},
+			errString: "",
+		},
+		{
+			name: "empty specs",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "",
+		},
+		{
+			name: "invalid json",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"image_visibility":
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "failed to validate extra specs",
+		},
+		{
+			name: "invalid input for security groups - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"security_groups": "allow_ssh"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "security_groups: Invalid type. Expected: array, given: string",
+		},
+		{
+			name: "invalid input for allowed image owners - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"allowed_image_owners": "123456"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "allowed_image_owners: Invalid type. Expected: array, given: string",
+		},
+		{
+			name: "invalid input for image visibility - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"image_visibility": 123456
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "image_visibility: Invalid type. Expected: string, given: integer",
+		},
+		{
+			name: "invalid input for network ID - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"network_id": 123456
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "network_id: Invalid type. Expected: string, given: integer",
+		},
+		{
+			name: "invalid input for storage backend - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"storage_backend": 123456
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "storage_backend: Invalid type. Expected: string, given: integer",
+		},
+		{
+			name: "invalid input for boot from volume - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"boot_from_volume": "true"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "boot_from_volume: Invalid type. Expected: boolean, given: string",
+		},
+		{
+			name: "invalid input for boot disk size - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"boot_disk_size": "150"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "boot_disk_size: Invalid type. Expected: integer, given: string",
+		},
+		{
+			name: "invalid input for use config drive - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"use_config_drive": "false"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "use_config_drive: Invalid type. Expected: boolean, given: string",
+		},
+		{
+			name: "invalid input for enable boot debug - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"enable_boot_debug": "true"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "enable_boot_debug: Invalid type. Expected: boolean, given: string",
+		},
+		{
+			name: "invalid input for disable updates - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"disable_updates": "true"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "disable_updates: Invalid type. Expected: boolean, given: string",
+		},
+		{
+			name: "invalid input for extra packages - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"extra_packages": "package1"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "extra_packages: Invalid type. Expected: array, given: string",
+		},
+		{
+			name: "invalid input for runner install template - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"runner_install_template": 123456
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "runner_install_template: Invalid type. Expected: string, given: integer",
+		},
+		{
+			name: "invalid input for pre install scripts - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"pre_install_scripts": "setup.sh"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "pre_install_scripts: Invalid type. Expected: object, given: string",
+		},
+		{
+			name: "invalid input for extra context - wrong data type",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"extra_context": "key"
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "extra_context: Invalid type. Expected: object, given: string",
+		},
+		{
+			name: "invalid input - additional property",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"invalid": "property"
 				}`),
 			},
 			wantSpec:  extraSpecs{},
