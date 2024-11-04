@@ -6,7 +6,7 @@ toolchain go1.22.3
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/cloudbase/garm-provider-common v0.1.4-0.20240912084949-899c120c80ce
+	github.com/cloudbase/garm-provider-common v0.1.4-0.20241026163040-5b7633dfb896
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud v1.11.0
 	github.com/gophercloud/utils v0.0.0-20230324070755-05e9e7f5ea4d
