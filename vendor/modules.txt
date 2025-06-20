@@ -1,5 +1,5 @@
-# github.com/BurntSushi/toml v1.2.1
-## explicit; go 1.16
+# github.com/BurntSushi/toml v1.5.0
+## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
 # github.com/bahlo/generic-list-go v0.2.0
@@ -8,8 +8,8 @@ github.com/bahlo/generic-list-go
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
-# github.com/cloudbase/garm-provider-common v0.1.4-0.20241026163040-5b7633dfb896
-## explicit; go 1.22
+# github.com/cloudbase/garm-provider-common v0.1.5
+## explicit; go 1.23.0
 github.com/cloudbase/garm-provider-common/cloudconfig
 github.com/cloudbase/garm-provider-common/defaults
 github.com/cloudbase/garm-provider-common/errors
@@ -28,7 +28,7 @@ github.com/felixge/httpsnoop
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/gophercloud/gophercloud v1.11.0
+# github.com/gophercloud/gophercloud v1.14.1
 ## explicit; go 1.14
 github.com/gophercloud/gophercloud
 github.com/gophercloud/gophercloud/openstack
@@ -52,7 +52,7 @@ github.com/gophercloud/gophercloud/openstack/utils
 github.com/gophercloud/gophercloud/pagination
 github.com/gophercloud/gophercloud/testhelper
 github.com/gophercloud/gophercloud/testhelper/client
-# github.com/gophercloud/utils v0.0.0-20230324070755-05e9e7f5ea4d
+# github.com/gophercloud/utils v0.0.0-20231010081019-80377eca5d56
 ## explicit; go 1.15
 github.com/gophercloud/utils/env
 github.com/gophercloud/utils/gnocchi
@@ -61,17 +61,20 @@ github.com/gophercloud/utils/openstack/clientconfig
 # github.com/gorilla/handlers v1.5.2
 ## explicit; go 1.20
 github.com/gorilla/handlers
-# github.com/invopop/jsonschema v0.12.0
+# github.com/hashicorp/go-uuid v1.0.3
+## explicit
+github.com/hashicorp/go-uuid
+# github.com/invopop/jsonschema v0.13.0
 ## explicit; go 1.18
 github.com/invopop/jsonschema
-# github.com/mailru/easyjson v0.7.7
-## explicit; go 1.12
+# github.com/mailru/easyjson v0.9.0
+## explicit; go 1.20
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jwriter
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/minio/sio v0.4.0
+# github.com/minio/sio v0.4.1
 ## explicit; go 1.18
 github.com/minio/sio
 # github.com/mitchellh/go-homedir v1.1.0
@@ -86,9 +89,10 @@ github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.9.0
+# github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/mock
 # github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 ## explicit; go 1.18
@@ -96,7 +100,7 @@ github.com/teris-io/shortid
 # github.com/wk8/go-ordered-map/v2 v2.1.8
 ## explicit; go 1.18
 github.com/wk8/go-ordered-map/v2
-# github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
+# github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
 ## explicit
 github.com/xeipuuv/gojsonpointer
 # github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
@@ -105,8 +109,8 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 ## explicit
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.26.0
-## explicit; go 1.20
+# golang.org/x/crypto v0.39.0
+## explicit; go 1.23.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -114,13 +118,13 @@ golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
-# golang.org/x/sys v0.24.0
-## explicit; go 1.18
+# golang.org/x/sys v0.33.0
+## explicit; go 1.23.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.17.0
-## explicit; go 1.18
+# golang.org/x/text v0.26.0
+## explicit; go 1.23.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/internal
