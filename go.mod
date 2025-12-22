@@ -3,7 +3,7 @@ module github.com/cloudbase/garm-provider-openstack
 go 1.24.0
 
 require (
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/cloudbase/garm-provider-common v0.1.8-0.20251001105909-bbcacae60e7c
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud v1.14.1
