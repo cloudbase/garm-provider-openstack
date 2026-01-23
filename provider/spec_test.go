@@ -20,8 +20,9 @@ import (
 
 	"github.com/cloudbase/garm-provider-common/cloudconfig"
 	"github.com/cloudbase/garm-provider-common/params"
-	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 func Test_machineSpec_MergeExtraSpecs(t *testing.T) {

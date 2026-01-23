@@ -15,12 +15,10 @@
 package client
 
 import (
+	gErrors "errors"
 	"fmt"
 	"strings"
 
-	gErrors "errors"
-
-	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/google/uuid"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/availabilityzones"
@@ -34,6 +32,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/pagination"
 	"github.com/gophercloud/utils/openstack/clientconfig"
+
+	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 const (

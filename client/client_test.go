@@ -399,8 +399,10 @@ func TestListServers(t *testing.T) {
 				ID:     "d9072956-1560-487c-97f2-18bdf65ec749",
 				Name:   "test-server",
 				Status: "ACTIVE",
-				Tags: &[]string{"garm-controller-id=my-controller-id",
-					"garm-pool-id=my-pool-id"},
+				Tags: &[]string{
+					"garm-controller-id=my-controller-id",
+					"garm-pool-id=my-pool-id",
+				},
 			},
 		},
 		{
@@ -408,8 +410,10 @@ func TestListServers(t *testing.T) {
 				ID:     "d9072956-1560-487c-10f2-18bdf65ec749",
 				Name:   "test-server-2",
 				Status: "ACTIVE",
-				Tags: &[]string{"garm-controller-id=my-controller-id",
-					"garm-pool-id=my-pool-id"},
+				Tags: &[]string{
+					"garm-controller-id=my-controller-id",
+					"garm-pool-id=my-pool-id",
+				},
 			},
 		},
 	}
