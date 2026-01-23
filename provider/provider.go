@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudbase/garm-provider-openstack/client"
-	"github.com/cloudbase/garm-provider-openstack/config"
-
 	execution "github.com/cloudbase/garm-provider-common/execution/v0.1.0"
 	"github.com/cloudbase/garm-provider-common/params"
+
+	"github.com/cloudbase/garm-provider-openstack/client"
+	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 var _ execution.ExternalProvider = &openstackProvider{}

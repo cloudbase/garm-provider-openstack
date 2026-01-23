@@ -24,7 +24,11 @@ jobs:
       - run: go version
 
       - name: Run GARM Go Tests
-        run: make test
+        run: |
+          make install-lint-deps
+          export PATH=$PATH:$HOME/go/bin
+          golangci-lint version
+          make test
 
   go-tests-windows:
     runs-on: windows-latest

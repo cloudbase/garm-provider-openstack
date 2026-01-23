@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: MIT
+linters:
+  disable-all: true
+  fast: false
+  enable:
+    - gci
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - gofumpt
+    - goimports
+    - godox
+    - govet
+    - gosec
+    - gosimple
+    - importas
+    - ineffassign
+    - loggercheck
+    - misspell
+    - nakedret
+    - nilerr
+    - predeclared
+    - promlinter
+    - staticcheck
+    - unconvert
+    - wastedassign
+    - whitespace
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/cloudbase/garm-provider-openstack)
+
+  goimports:
+    local-prefixes: github.com/cloudbase/garm-provider-openstack
+
+  gosec:
+    excludes:
+    - G115
+

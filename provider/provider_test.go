@@ -22,12 +22,13 @@ import (
 	"testing"
 
 	"github.com/cloudbase/garm-provider-common/params"
-	"github.com/cloudbase/garm-provider-openstack/client"
-	"github.com/cloudbase/garm-provider-openstack/config"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/testhelper"
 	thclient "github.com/gophercloud/gophercloud/testhelper/client"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/cloudbase/garm-provider-openstack/client"
+	"github.com/cloudbase/garm-provider-openstack/config"
 )
 
 func TestOpenstackServerToInstance(t *testing.T) {

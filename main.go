@@ -34,23 +34,25 @@ var signals = []os.Signal{
 }
 
 func main() {
-
 	ctx, stop := signal.NotifyContext(context.Background(), signals...)
 	defer stop()
 
 	executionEnv, err := execution.GetEnvironment()
 	if err != nil {
+		//nolint:gocritic
 		log.Fatal(err)
 	}
 
 	prov, err := provider.NewOpenStackProvider(executionEnv.ProviderConfigFile, executionEnv.ControllerID)
 	if err != nil {
+		//nolint:gocritic
 		log.Fatal(err)
 	}
 
 	result, err := executionEnv.Run(ctx, prov)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to run command: %s", err)
+		//nolint:gocritic
 		os.Exit(commonExecution.ResolveErrorToExitCode(err))
 	}
 	if len(result) > 0 {
