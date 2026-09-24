@@ -225,6 +225,11 @@ func (m *machineSpec) Validate() error {
 // SetSpecFromImage looks for aditional info in the image metadata that can be set
 // on a machine for later retrieval.
 func (m *machineSpec) SetSpecFromImage(img images.Image) {
+	if m.Properties == nil {
+		m.Properties = make(map[string]string)
+	}
+	m.Properties["image_id"] = img.ID
+
 	if os_name, ok := img.Properties["os_distro"]; ok {
 		val, ok := os_name.(string)
 		if ok {

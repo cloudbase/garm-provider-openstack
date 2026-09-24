@@ -21,10 +21,18 @@ import (
 	"github.com/cloudbase/garm-provider-common/cloudconfig"
 	"github.com/cloudbase/garm-provider-common/params"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/cloudbase/garm-provider-openstack/config"
 )
+
+func TestMachineSpecSetSpecFromImageAddsImageID(t *testing.T) {
+	m := &machineSpec{Properties: map[string]string{}}
+	m.SetSpecFromImage(images.Image{ID: "image-uuid"})
+
+	assert.Equal(t, "image-uuid", m.Properties["image_id"])
+}
 
 func Test_machineSpec_MergeExtraSpecs(t *testing.T) {
 	tests := []struct {
