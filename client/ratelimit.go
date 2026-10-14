@@ -53,7 +53,9 @@ func rateLimitBackoff(ctx context.Context, respErr *gophercloud.ErrUnexpectedRes
 func rateLimitDelay(respErr *gophercloud.ErrUnexpectedResponseCode, failCount uint, now time.Time) time.Duration {
 	if respErr != nil {
 		if delay, ok := retryAfter(respErr.ResponseHeader.Get("Retry-After"), now); ok {
-			return delay
+			// Honor the server's delay up to the backoff ceiling, so that all
+			// retries together stay well inside GARM's runner bootstrap timeout.
+			return min(delay, maxRateLimitBackoff)
 		}
 	}
 

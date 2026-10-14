@@ -95,11 +95,26 @@ func TestRateLimitBackoffHonorsRetryAfter(t *testing.T) {
 		start := time.Now()
 		respErr := &gophercloud.ErrUnexpectedResponseCode{
 			Actual:         http.StatusTooManyRequests,
-			ResponseHeader: http.Header{"Retry-After": {"90"}},
+			ResponseHeader: http.Header{"Retry-After": {"45"}},
 		}
 		assert.NoError(t, rateLimitBackoff(context.Background(), respErr, nil, 1))
-		assert.Equal(t, 90*time.Second, time.Since(start))
+		assert.Equal(t, 45*time.Second, time.Since(start))
 	})
+}
+
+func TestRateLimitDelayCapsRetryAfter(t *testing.T) {
+	now := time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC)
+	for value, want := range map[string]time.Duration{
+		"45":  45 * time.Second,
+		"300": maxRateLimitBackoff,
+		now.Add(time.Hour).Format(http.TimeFormat): maxRateLimitBackoff,
+	} {
+		respErr := &gophercloud.ErrUnexpectedResponseCode{
+			Actual:         http.StatusTooManyRequests,
+			ResponseHeader: http.Header{"Retry-After": {value}},
+		}
+		assert.Equal(t, want, rateLimitDelay(respErr, 1, now), value)
+	}
 }
 
 func TestRateLimitBackoffCancellation(t *testing.T) {
