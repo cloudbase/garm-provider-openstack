@@ -34,12 +34,11 @@ const (
 	poolIDTagName       = "garm-pool-id"
 )
 
-var statusMap = map[string]string{
-	"ACTIVE":   "running",
-	"SHUTOFF":  "stopped",
-	"BUILD":    "pending_create",
-	"ERROR":    "error",
-	"DELETING": "pending_delete",
+// GARM reserves pending states for its own lifecycle tracking.
+var statusMap = map[string]params.InstanceStatus{
+	"ACTIVE":  params.InstanceRunning,
+	"SHUTOFF": params.InstanceStopped,
+	"ERROR":   params.InstanceError,
 }
 
 var addrTypeMap = map[string]params.AddressType{
@@ -110,13 +109,16 @@ func openstackServerToInstance(srv client.ServerWithExt) params.ProviderInstance
 	osType := srv.Metadata["os_type"]
 	osName := srv.Metadata["os_name"]
 	osVersion := srv.Metadata["os_version"]
-	status := statusMap[srv.Status]
+	status, ok := statusMap[srv.Status]
+	if !ok {
+		status = params.InstanceStatusUnknown
+	}
 	instance := params.ProviderInstance{
 		ProviderID: srv.ID,
 		Name:       srv.Name,
 		OSArch:     params.OSArch(arch),
 		OSType:     params.OSType(osType),
-		Status:     params.InstanceStatus(status),
+		Status:     status,
 		OSName:     osName,
 		OSVersion:  osVersion,
 		Addresses:  addresses,

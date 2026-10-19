@@ -73,6 +73,33 @@ func TestOpenstackServerToInstance(t *testing.T) {
 	assert.Equal(t, expectedInstance, instance)
 }
 
+func TestOpenstackServerToInstanceStatus(t *testing.T) {
+	tests := []struct {
+		name   string
+		status string
+		want   params.InstanceStatus
+	}{
+		{name: "active", status: "ACTIVE", want: params.InstanceRunning},
+		{name: "shutoff", status: "SHUTOFF", want: params.InstanceStopped},
+		{name: "error", status: "ERROR", want: params.InstanceError},
+		{name: "building", status: "BUILD", want: params.InstanceStatusUnknown},
+		{name: "deleting", status: "DELETING", want: params.InstanceStatusUnknown},
+		{name: "rebuilding", status: "REBUILD", want: params.InstanceStatusUnknown},
+		{name: "paused", status: "PAUSED", want: params.InstanceStatusUnknown},
+		{name: "unrecognized", status: "UNRECOGNIZED", want: params.InstanceStatusUnknown},
+		{name: "empty", want: params.InstanceStatusUnknown},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := client.ServerWithExt{
+				Server: servers.Server{Status: tt.status},
+			}
+			instance := openstackServerToInstance(srv)
+			assert.Equal(t, tt.want, instance.Status)
+		})
+	}
+}
+
 func TestCreateInstance(t *testing.T) {
 	ctx := context.Background()
 	fakeServer := testhelper.SetupHTTP()
@@ -448,6 +475,16 @@ func TestListInstances(t *testing.T) {
 				"tags": ["garm-controller-id=my-controller-id",
 				"garm-pool-id=test-pool"],
 				"status": "ACTIVE"
+			},
+			{
+				"id": "f7856621-573c-478b-b4ad-5554f6227501",
+				"name": "building-instance",
+				"status": "BUILD"
+			},
+			{
+				"id": "ec7f18e9-3d03-4dc7-a838-98f13c3189c6",
+				"name": "deleting-instance",
+				"status": "DELETING"
 			}
 		]
 		}`)
@@ -468,6 +505,18 @@ func TestListInstances(t *testing.T) {
 					Address: "10.10.0.4",
 				},
 			},
+		},
+		{
+			ProviderID: "f7856621-573c-478b-b4ad-5554f6227501",
+			Name:       "building-instance",
+			Status:     params.InstanceStatusUnknown,
+			Addresses:  []params.Address{},
+		},
+		{
+			ProviderID: "ec7f18e9-3d03-4dc7-a838-98f13c3189c6",
+			Name:       "deleting-instance",
+			Status:     params.InstanceStatusUnknown,
+			Addresses:  []params.Address{},
 		},
 	}
 
