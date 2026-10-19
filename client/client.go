@@ -71,6 +71,9 @@ func NewClient(ctx context.Context, cfg *config.Config, controllerID string) (*O
 	if err != nil {
 		return nil, fmt.Errorf("failed to get cinder client: %w", err)
 	}
+	for _, service := range []*gophercloud.ServiceClient{compute, glance, neutron, cinder} {
+		configureRateLimitRetries(service.ProviderClient)
+	}
 	return &OpenstackClient{
 		compute:      compute,
 		image:        glance,
@@ -239,7 +242,7 @@ func (o *OpenstackClient) waitForStatus(ctx context.Context, id, status string, 
 	waitCtx, cancel := context.WithTimeout(ctx, time.Duration(secs)*time.Second)
 	defer cancel()
 
-	return gophercloud.WaitFor(waitCtx, func(ctx context.Context) (bool, error) {
+	return waitFor(waitCtx, func(ctx context.Context) (bool, error) {
 		result := servers.Get(ctx, o.compute, id)
 
 		current, err := result.Extract()
