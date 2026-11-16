@@ -8,7 +8,7 @@ github.com/bahlo/generic-list-go
 # github.com/buger/jsonparser v1.1.2
 ## explicit; go 1.13
 github.com/buger/jsonparser
-# github.com/cloudbase/garm-provider-common v0.1.9
+# github.com/cloudbase/garm-provider-common v0.1.10-0.20261111212522-a63fbe8afd51
 ## explicit; go 1.25.0
 github.com/cloudbase/garm-provider-common/cloudconfig
 github.com/cloudbase/garm-provider-common/defaults
@@ -19,8 +19,8 @@ github.com/cloudbase/garm-provider-common/execution/v0.1.0
 github.com/cloudbase/garm-provider-common/execution/v0.1.1
 github.com/cloudbase/garm-provider-common/params
 github.com/cloudbase/garm-provider-common/util
-# github.com/felixge/httpsnoop v1.0.4
-## explicit; go 1.13
+# github.com/felixge/httpsnoop v1.1.0
+## explicit; go 1.25
 github.com/felixge/httpsnoop
 # github.com/gofrs/uuid/v5 v5.4.0
 ## explicit; go 1.19
@@ -57,10 +57,10 @@ github.com/gorilla/handlers
 # github.com/invopop/jsonschema v0.14.0
 ## explicit; go 1.24
 github.com/invopop/jsonschema
-# github.com/mattn/go-isatty v0.0.21
+# github.com/mattn/go-isatty v0.0.22
 ## explicit; go 1.21
 github.com/mattn/go-isatty
-# github.com/minio/sio v0.4.3
+# github.com/minio/sio v0.5.1
 ## explicit; go 1.24.0
 github.com/minio/sio
 # github.com/pb33f/ordered-map/v2 v2.3.1
@@ -94,10 +94,11 @@ github.com/xeipuuv/gojsonschema
 # go.yaml.in/yaml/v3 v3.0.5
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# go.yaml.in/yaml/v4 v4.0.0-rc.4
+# go.yaml.in/yaml/v4 v4.0.0-rc.6
 ## explicit; go 1.18
 go.yaml.in/yaml/v4
 go.yaml.in/yaml/v4/internal/libyaml
+go.yaml.in/yaml/v4/plugin/limit
 # golang.org/x/crypto v0.55.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/bcrypt
