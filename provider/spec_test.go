@@ -20,6 +20,7 @@ import (
 
 	"github.com/cloudbase/garm-provider-common/cloudconfig"
 	"github.com/cloudbase/garm-provider-common/params"
+	"github.com/cloudbase/garm-provider-common/util"
 	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/stretchr/testify/assert"
 
@@ -555,6 +556,62 @@ func TestNewMachineSpec(t *testing.T) {
 	spec, err := NewMachineSpec(data, config, "controllerID")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedOutput, spec)
+}
+
+// TestNewMachineSpecSelectsToolsForArch checks that the machine spec takes
+// the runner tools matching the requested architecture from the list GARM
+// passes, including architectures whose tools only third parties publish.
+func TestNewMachineSpecSelectsToolsForArch(t *testing.T) {
+	// TestNewMachineSpec replaces DefaultToolFetch with a stub; use the real one.
+	DefaultToolFetch = util.GetTools
+	cfg := &config.Config{
+		Cloud: "mycloud",
+		Credentials: config.Credentials{
+			Clouds: "../testdata/clouds.yaml",
+		},
+		DefaultNetworkID: "network",
+	}
+	tools := []params.RunnerApplicationDownload{}
+	for _, arch := range []string{"x64", "arm64", "arm", "ppc64le", "s390x"} {
+		tools = append(tools, params.RunnerApplicationDownload{
+			OS:           Ptr("linux"),
+			Architecture: Ptr(arch),
+			DownloadURL:  Ptr("https://example.com/actions-runner-linux-" + arch + ".tar.gz"),
+			Filename:     Ptr("actions-runner-linux-" + arch + ".tar.gz"),
+		})
+	}
+
+	tests := []struct {
+		osArch   params.OSArch
+		wantArch string
+	}{
+		{osArch: params.Amd64, wantArch: "x64"},
+		{osArch: params.Arm64, wantArch: "arm64"},
+		{osArch: params.Arm, wantArch: "arm"},
+		{osArch: params.Ppc64le, wantArch: "ppc64le"},
+		{osArch: params.S390x, wantArch: "s390x"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.osArch), func(t *testing.T) {
+			data := params.BootstrapInstance{
+				Name:   "test-instance",
+				OSArch: tt.osArch,
+				OSType: params.Linux,
+				Flavor: "m1.small",
+				Image:  "ubuntu-24.04",
+				Tools:  tools,
+				PoolID: "test-pool",
+			}
+
+			spec, err := NewMachineSpec(data, cfg, "controllerID")
+			assert.NoError(t, err)
+			if assert.NotNil(t, spec) {
+				assert.Equal(t, tt.wantArch, spec.Tools.GetArchitecture())
+				assert.Equal(t, string(tt.osArch), spec.Properties["os_arch"])
+			}
+		})
+	}
 }
 
 func TestGetBootFromVolumeOpts(t *testing.T) {
