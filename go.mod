@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/cloudbase/garm-provider-common v0.1.9
+	github.com/cloudbase/garm-provider-common v0.1.10-0.20261111212522-a63fbe8afd51
 	github.com/google/uuid v1.6.0
 	github.com/gophercloud/gophercloud/v2 v2.15.0
 	github.com/gophercloud/utils/v2 v2.0.0-20260626221802-4ae35253ac13
@@ -20,14 +20,14 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 )
 
 require (
-	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
-	github.com/mattn/go-isatty v0.0.21 // indirect
-	github.com/minio/sio v0.4.3 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/minio/sio v0.5.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
