@@ -96,8 +96,65 @@ type OpenstackClient struct {
 	controllerID string
 }
 
+// DefaultActiveTimeout is how long a freshly created server may take to reach
+// ACTIVE before the create is considered failed.
+const DefaultActiveTimeout = 120 * time.Second
+
+// maxFaultDetails bounds how much of the Nova fault details (usually a
+// traceback) is embedded in an error message.
+const maxFaultDetails = 2048
+
+// CreateOption tunes CreateServerFromImage and CreateServerFromVolume.
+type CreateOption func(*createSettings)
+
+type createSettings struct {
+	activeTimeout time.Duration
+}
+
+// WithActiveTimeout sets how long to wait for the server to reach ACTIVE.
+// Non-positive values keep DefaultActiveTimeout.
+func WithActiveTimeout(d time.Duration) CreateOption {
+	return func(s *createSettings) {
+		if d > 0 {
+			s.activeTimeout = d
+		}
+	}
+}
+
+func newCreateSettings(opts []CreateOption) createSettings {
+	s := createSettings{activeTimeout: DefaultActiveTimeout}
+	for _, opt := range opts {
+		opt(&s)
+	}
+	return s
+}
+
+// ServerFaultError reports that a server went to ERROR, carrying the fault
+// Nova recorded for it. It is built before the server is deleted, so the
+// diagnosis survives the cleanup.
+type ServerFaultError struct {
+	ServerID string
+	Fault    servers.Fault
+}
+
+func (e *ServerFaultError) Error() string {
+	msg := "instance in ERROR state"
+	if e.Fault.Message == "" && e.Fault.Code == 0 && e.Fault.Details == "" {
+		return msg
+	}
+	msg = fmt.Sprintf("%s: %s (code %d)", msg, e.Fault.Message, e.Fault.Code)
+	if d := e.Fault.Details; d != "" {
+		if len(d) > maxFaultDetails {
+			d = d[:maxFaultDetails] + "..."
+		}
+		msg += ": " + d
+	}
+	return msg
+}
+
 // CreateServerFromImage creates a new server from an image.
-func (o *OpenstackClient) CreateServerFromImage(ctx context.Context, createOpts servers.CreateOpts) (srv ServerWithExt, err error) {
+func (o *OpenstackClient) CreateServerFromImage(ctx context.Context, createOpts servers.CreateOpts, opts ...CreateOption) (srv ServerWithExt, err error) {
+	settings := newCreateSettings(opts)
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
@@ -112,15 +169,16 @@ func (o *OpenstackClient) CreateServerFromImage(ctx context.Context, createOpts 
 		return srv, fmt.Errorf("failed to create server: %w", err)
 	}
 
-	if err := o.waitForStatus(ctx, srv.ID, "ACTIVE", 120); err != nil {
-		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds: %w", err)
+	if err := o.waitForStatus(ctx, srv.ID, "ACTIVE", settings.activeTimeout); err != nil {
+		return srv, fmt.Errorf("server did not reach ACTIVE state after %g seconds: %w", settings.activeTimeout.Seconds(), err)
 	}
 
 	return o.GetServer(ctx, srv.ID)
 }
 
 // CreateServerFromVolume creates a new server from a volume.
-func (o *OpenstackClient) CreateServerFromVolume(ctx context.Context, createOpts servers.CreateOpts, name string) (srv ServerWithExt, err error) {
+func (o *OpenstackClient) CreateServerFromVolume(ctx context.Context, createOpts servers.CreateOpts, name string, opts ...CreateOption) (srv ServerWithExt, err error) {
+	settings := newCreateSettings(opts)
 	defer func() {
 		if err != nil {
 			if srv.ID != "" {
@@ -135,8 +193,8 @@ func (o *OpenstackClient) CreateServerFromVolume(ctx context.Context, createOpts
 		return srv, fmt.Errorf("failed to create server: %w", err)
 	}
 
-	if err := o.waitForStatus(ctx, srv.ID, "ACTIVE", 120); err != nil {
-		return srv, fmt.Errorf("server did not reach ACTIVE state after 120 seconds: %w", err)
+	if err := o.waitForStatus(ctx, srv.ID, "ACTIVE", settings.activeTimeout); err != nil {
+		return srv, fmt.Errorf("server did not reach ACTIVE state after %g seconds: %w", settings.activeTimeout.Seconds(), err)
 	}
 
 	return o.GetServer(ctx, srv.ID)
@@ -238,8 +296,8 @@ func (o *OpenstackClient) ListServers(ctx context.Context, poolID string) ([]Ser
 	return o.ListServersWithTags(ctx, tags)
 }
 
-func (o *OpenstackClient) waitForStatus(ctx context.Context, id, status string, secs int) error {
-	waitCtx, cancel := context.WithTimeout(ctx, time.Duration(secs)*time.Second)
+func (o *OpenstackClient) waitForStatus(ctx context.Context, id, status string, timeout time.Duration) error {
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	return waitFor(waitCtx, func(ctx context.Context) (bool, error) {
@@ -258,7 +316,7 @@ func (o *OpenstackClient) waitForStatus(ctx context.Context, id, status string, 
 		}
 
 		if current.Status == "ERROR" {
-			return false, fmt.Errorf("instance in ERROR state")
+			return false, &ServerFaultError{ServerID: id, Fault: current.Fault}
 		}
 
 		return false, nil
@@ -276,7 +334,7 @@ func (o *OpenstackClient) deleteServerByID(ctx context.Context, id string, waitF
 	}
 
 	if waitForDelete {
-		if err := o.waitForStatus(ctx, id, "DELETED", 120); err != nil {
+		if err := o.waitForStatus(ctx, id, "DELETED", DefaultActiveTimeout); err != nil {
 			return fmt.Errorf("failed to delete server: %w", err)
 		}
 	}

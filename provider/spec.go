@@ -17,6 +17,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/cloudbase/garm-provider-common/cloudconfig"
 	"github.com/cloudbase/garm-provider-common/params"
@@ -54,6 +55,7 @@ type extraSpecs struct {
 	EnableBootDebug    *bool    `json:"enable_boot_debug,omitempty" jsonschema:"description=Enable cloud-init debug mode. Adds 'set -x' into the cloud-init script."`
 	DisableUpdates     *bool    `json:"disable_updates,omitempty" jsonschema:"description=Disable automatic updates on the VM."`
 	ExtraPackages      []string `json:"extra_packages,omitempty" jsonschema:"description=Extra packages to install on the VM."`
+	CreateTimeout      *int64   `json:"create_timeout_seconds,omitempty" jsonschema:"description=Seconds to wait for the server to reach ACTIVE. Default is 120. Raise it for boot from volume with large disks.,minimum=1"`
 	// The Cloudconfig struct from common package
 	cloudconfig.CloudConfigSpec
 }
@@ -182,6 +184,7 @@ type machineSpec struct {
 	Flavor             string
 	Image              string
 	DisableUpdates     bool
+	CreateTimeout      time.Duration
 	ExtraPackages      []string
 	Tools              params.RunnerApplicationDownload
 	Tags               []string
@@ -275,6 +278,10 @@ func (m *machineSpec) MergeExtraSpecs(spec extraSpecs) {
 
 	if spec.DisableUpdates != nil {
 		m.DisableUpdates = *spec.DisableUpdates
+	}
+
+	if spec.CreateTimeout != nil {
+		m.CreateTimeout = time.Duration(*spec.CreateTimeout) * time.Second
 	}
 
 	// an empty visibility in the extra specs should not override the

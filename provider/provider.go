@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	execution "github.com/cloudbase/garm-provider-common/execution/v0.1.0"
@@ -124,6 +125,12 @@ func openstackServerToInstance(srv client.ServerWithExt) params.ProviderInstance
 		Addresses:  addresses,
 	}
 
+	if srv.Status == "ERROR" {
+		if fault, err := json.Marshal(srv.Fault); err == nil && srv.Fault.Message != "" {
+			instance.ProviderFault = fault
+		}
+	}
+
 	return instance
 }
 
@@ -171,7 +178,7 @@ func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams 
 
 	var srv client.ServerWithExt
 	if !spec.BootFromVolume {
-		srv, err = a.cli.CreateServerFromImage(ctx, srvCreateOpts)
+		srv, err = a.cli.CreateServerFromImage(ctx, srvCreateOpts, client.WithActiveTimeout(spec.CreateTimeout))
 		if err != nil {
 			return params.ProviderInstance{}, fmt.Errorf("failed to create server: %w", err)
 		}
@@ -180,7 +187,7 @@ func (a *openstackProvider) CreateInstance(ctx context.Context, bootstrapParams 
 		if err != nil {
 			return params.ProviderInstance{}, fmt.Errorf("failed to get boot from volume create options: %w", err)
 		}
-		srv, err = a.cli.CreateServerFromVolume(ctx, createOption, spec.BootstrapParams.Name)
+		srv, err = a.cli.CreateServerFromVolume(ctx, createOption, spec.BootstrapParams.Name, client.WithActiveTimeout(spec.CreateTimeout))
 		if err != nil {
 			return params.ProviderInstance{}, fmt.Errorf("failed to create server: %w", err)
 		}
