@@ -249,6 +249,28 @@ func TestExtraSpecsFromBootstrapParams(t *testing.T) {
 			errString: "",
 		},
 		{
+			name: "specs just with create timeout",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"create_timeout_seconds": 600
+				}`),
+			},
+			wantSpec: extraSpecs{
+				CreateTimeout: Ptr(int64(600)),
+			},
+			errString: "",
+		},
+		{
+			name: "specs with a zero create timeout",
+			input: params.BootstrapInstance{
+				ExtraSpecs: json.RawMessage(`{
+					"create_timeout_seconds": 0
+				}`),
+			},
+			wantSpec:  extraSpecs{},
+			errString: "create_timeout_seconds: Must be greater than or equal to 1",
+		},
+		{
 			name: "specs just with extra packages",
 			input: params.BootstrapInstance{
 				ExtraSpecs: json.RawMessage(`{

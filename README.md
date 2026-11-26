@@ -83,6 +83,11 @@ To this end, this provider supports the following extra specs schema:
             "type": "boolean",
             "description": "Disable automatic updates on the VM."
         },
+        "create_timeout_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Seconds to wait for the server to reach ACTIVE. Default is 120. Raise it for boot from volume with large disks."
+        },
         "extra_packages": {
             "type": "array",
             "description": "Extra packages to install on the VM.",
